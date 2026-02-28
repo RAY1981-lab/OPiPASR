@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" role="img" aria-label="ОПиПАСР">
+  <defs>
+    <linearGradient id="g" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7DD3FC" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#A7F3D0" stop-opacity="0.85"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="48" height="48" rx="16" fill="url(#g)" fill-opacity="0.18" stroke="rgba(255,255,255,0.22)"/>
+  <path d="M20 39.5c0-8.3 6.7-15 15-15h1.5" stroke="rgba(255,255,255,0.78)" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M44 24.5c0 8.3-6.7 15-15 15H27.5" stroke="rgba(255,255,255,0.78)" stroke-width="2.6" stroke-linecap="round"/>
+  <circle cx="32" cy="32" r="3.6" fill="rgba(255,255,255,0.85)"/>
+  <path d="M32 17.5v6" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round"/>
+  <path d="M32 40.5v6" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round"/>
+  <path d="M17.5 32h6" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round"/>
+  <path d="M40.5 32h6" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round"/>
+</svg>

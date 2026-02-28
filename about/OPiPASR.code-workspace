@@ -1,0 +1,50 @@
+{
+	"folders": [
+		{
+			"path": "../../../../../Users/Taktika/Documents/GitHub/OPiPASR"
+		},
+		{
+			"path": "."
+		},
+		{
+			"path": "../admin"
+		},
+		{
+			"path": "../api"
+		},
+		{
+			"path": "../app"
+		},
+		{
+			"path": "../assets"
+		},
+		{
+			"path": "../config"
+		},
+		{
+			"path": "../contacts"
+		},
+		{
+			"path": "../literature"
+		},
+		{
+			"path": "../login"
+		},
+		{
+			"path": "../logout"
+		},
+		{
+			"path": "../methods"
+		},
+		{
+			"path": "../normative"
+		},
+		{
+			"path": "../register"
+		},
+		{
+			"path": "../sql"
+		}
+	],
+	"settings": {}
+}
