@@ -2,7 +2,7 @@
    Design goals: clean, fast, readable, “engineering” tone. */
 
 :root{
-  --bg: #0b1020;
+  --bg: #121a31;
   --panel: rgba(255,255,255,0.06);
   --panel-2: rgba(255,255,255,0.08);
   --text: rgba(255,255,255,0.92);
@@ -25,7 +25,7 @@ html,body{ height:100%; }
 
 /* Базовый цвет на html (чтобы фон не "пропадал" при fixed-псевдоэлементах) */
 html{
-  background:#050915;
+  background:#0b1222;
 }
 
 /* ====== BACKGROUND: smooth, fixed, no "bands" ====== */
@@ -49,7 +49,7 @@ body::before{
     radial-gradient(1400px 900px at 18% 12%, rgba(125,211,252,0.14) 0%, rgba(125,211,252,0.00) 72%),
     radial-gradient(1200px 850px at 80% 18%, rgba(167,243,208,0.10) 0%, rgba(167,243,208,0.00) 74%),
     radial-gradient(1100px 900px at 50% 95%, rgba(59,130,246,0.08) 0%, rgba(59,130,246,0.00) 78%),
-    linear-gradient(180deg, #071022 0%, #050915 100%);
+    linear-gradient(180deg, #0d1830 0%, #0b1222 100%);
 }
 
 /* Dithering (шум) — убирает "полосы" (banding) на тёмных градиентах */
