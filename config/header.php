@@ -3,6 +3,8 @@ require_once __DIR__ . '/bootstrap.php';
 
 $role = $_SESSION['user']['role'] ?? null;
 $can_cabinet = is_logged_in() && in_array($role, ['ADMIN','OPERATOR','RTP'], true);
+$header_variant = $header_variant ?? (is_logged_in() ? 'private' : 'public');
+$body_class = trim((string)($body_class ?? ''));
 ?>
 <!doctype html>
 <html lang="ru">
@@ -14,28 +16,33 @@ $can_cabinet = is_logged_in() && in_array($role, ['ADMIN','OPERATOR','RTP'], tru
   <link rel="icon" href="/assets/logo.png" />
   <link rel="stylesheet" href="/assets/styles.css?v=<?= @filemtime(__DIR__ . '/../assets/styles.css') ?: time() ?>" />
 </head>
-<body>
+<body<?= $body_class !== '' ? ' class="' . h($body_class) . '"' : '' ?>>
 <a class="skip-link" href="#content">Перейти к содержимому</a>
 
 <header class="site-header" role="banner">
-  <div class="container header-inner">
-    <a class="brand" href="/" aria-label="На главную">
-      <img src="/assets/logo.png" alt="Логотип ОПиПАСР" class="logo" width="28" height="28" />
-      <span class="brand-text">
-        <span class="brand-title">ОПиПАСР</span>
-        <span class="brand-subtitle">НТД • методики • кабинет РТП</span>
-      </span>
-    </a>
+  <div class="container header-inner<?= $header_variant === 'public' ? ' header-inner--public' : '' ?>">
+    <?php if ($header_variant !== 'public'): ?>
+      <a class="brand" href="/" aria-label="На главную">
+        <img src="/assets/logo.png" alt="Логотип ОПиПАСР" class="logo" width="28" height="28" />
+        <span class="brand-text">
+          <span class="brand-title">ОПиПАСР</span>
+          <span class="brand-subtitle">НТД • методики • кабинет РТП</span>
+        </span>
+      </a>
 
-    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
-      <span class="nav-toggle__bar" aria-hidden="true"></span>
-      <span class="sr-only">Открыть меню</span>
-    </button>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
+        <span class="nav-toggle__bar" aria-hidden="true"></span>
+        <span class="sr-only">Открыть меню</span>
+      </button>
+    <?php endif; ?>
 
-    <nav id="site-nav" class="site-nav" role="navigation" aria-label="Основное меню">
-      <a class="nav-link" href="/normative/">Нормативные документы</a>
-      <a class="nav-link" href="/methods/">Методики и модели</a>
-      <a class="nav-link" href="/about/">О&nbsp;системе</a>
+    <nav id="site-nav" class="site-nav<?= $header_variant === 'public' ? ' site-nav--public' : '' ?>" role="navigation" aria-label="Основное меню">
+      <?php if ($header_variant !== 'public'): ?>
+        <a class="nav-link" href="/normative/">Нормативные документы</a>
+        <a class="nav-link" href="/methods/">Методики и модели</a>
+        <a class="nav-link" href="/about/">О&nbsp;системе</a>
+      <?php endif; ?>
+
       <a class="nav-link" href="/contacts/">Контакты</a>
 
       <div class="nav-actions">

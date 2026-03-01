@@ -5,8 +5,7 @@ require_once __DIR__ . '/../config/bootstrap.php';  // Подключаем boot
 
 // Обрабатываем POST запрос
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Убираем проверку CSRF
-    // require_csrf();  // Эта строка удалена
+    require_csrf();
 
     // Получаем данные из формы
     $username = trim((string)($_POST['username'] ?? ''));
@@ -75,7 +74,7 @@ if ($f) {
     </div>
 
     <form class="form" method="post" autocomplete="off">
-        <!-- Убрали csrf_field() -->
+        <?= csrf_field() ?>
         <div class="field">
             <label class="label" for="username">Admin username</label>
             <input class="input" id="username" name="username" required inputmode="latin"

@@ -3,91 +3,11 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../config/bootstrap.php';
 
-/**
- * ===== Регистрационный лог =====
- * На вашем хостинге структура обычно такая:
- *   .../data/www/opipasr.ru/register/index.php
- *   .../data/logs/ingest.log
- * Значит register.log нужно писать в:
- *   .../data/logs/register.log
- */
-$REQUEST_ID = bin2hex(random_bytes(8));
-
-$LOG_DIR = null;
-
-// 1) Самый надёжный вариант: через DOCUMENT_ROOT (если задан)
-if (!empty($_SERVER['DOCUMENT_ROOT'])) {
-  // DOCUMENT_ROOT: .../data/www/opipasr.ru
-  // dirname(..., 2) -> .../data
-  $cand = dirname((string)$_SERVER['DOCUMENT_ROOT'], 2) . '/logs';
-  if (is_dir($cand)) $LOG_DIR = $cand;
+if (is_logged_in()) {
+  redirect('/');
 }
 
-// 2) Резерв: от текущего файла (register -> opipasr.ru -> www -> data)
-if ($LOG_DIR === null) {
-  $cand = __DIR__ . '/../../../logs';
-  if (is_dir($cand)) $LOG_DIR = $cand;
-}
-
-// 3) Резерв: лог рядом с проектом (если вдруг есть папка logs в домене)
-if ($LOG_DIR === null) {
-  $cand = dirname(__DIR__) . '/logs'; // .../opipasr.ru/logs
-  if (is_dir($cand)) $LOG_DIR = $cand;
-}
-
-$LOG_FILE = ($LOG_DIR !== null)
-  ? rtrim($LOG_DIR, '/\\') . '/register.log'
-  : (sys_get_temp_dir() . '/register.log'); // последний фолбэк (в ISPmanager не увидите)
-
-function reg_log(string $level, string $event, array $ctx = []): void {
-  global $LOG_FILE, $REQUEST_ID;
-
-  $row = array_merge([
-    'ts_utc'     => gmdate('c'),
-    'level'      => $level,
-    'event'      => $event,
-    'request_id' => $REQUEST_ID,
-    'ip'         => $_SERVER['REMOTE_ADDR'] ?? null,
-    'uri'        => $_SERVER['REQUEST_URI'] ?? null,
-    'method'     => $_SERVER['REQUEST_METHOD'] ?? null,
-    'ua'         => $_SERVER['HTTP_USER_AGENT'] ?? null,
-    'log_file'   => $LOG_FILE, // чтобы вы точно видели, куда пишется
-  ], $ctx);
-
-  @file_put_contents(
-    $LOG_FILE,
-    json_encode($row, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL,
-    FILE_APPEND | LOCK_EX
-  );
-}
-
-// Логируем любой заход на страницу, чтобы файл гарантированно создавался
-reg_log('info', 'register_hit', []);
-
-// Логируем необработанные исключения аккуратно
-set_exception_handler(function (Throwable $e) {
-  reg_log('error', 'unhandled_exception', [
-    'type' => get_class($e),
-    'code' => (string)$e->getCode(),
-    'msg'  => $e->getMessage(),
-  ]);
-
-  flash_set('bad', 'Ошибка сервера при регистрации. Код: ' . ($GLOBALS['REQUEST_ID'] ?? 'n/a'));
-  redirect('/register/');
-});
-
-ini_set('log_errors', '1');
-error_reporting(E_ALL);
-
-
-/**
- * ===== Обработка регистрации =====
- */
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
-  reg_log('info', 'register_post', [
-    'post_keys' => array_keys($_POST),
-  ]);
-
   require_csrf();
 
   $username = trim((string)($_POST['username'] ?? ''));
@@ -95,19 +15,16 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
   $pass2 = (string)($_POST['password2'] ?? '');
 
   if (!preg_match(USERNAME_REGEX, $username)) {
-    reg_log('warn', 'validation_failed', ['reason' => 'bad_username', 'username' => $username]);
     flash_set('bad', 'Некорректный username: используйте латиницу/цифры/подчёркивание, 3–32 символа.');
     redirect('/register/');
   }
 
   if (strlen($pass1) < MIN_PASSWORD_LEN) {
-    reg_log('warn', 'validation_failed', ['reason' => 'short_password', 'username' => $username]);
     flash_set('bad', 'Слишком короткий пароль. Минимум: ' . MIN_PASSWORD_LEN . ' символов.');
     redirect('/register/');
   }
 
   if ($pass1 !== $pass2) {
-    reg_log('warn', 'validation_failed', ['reason' => 'password_mismatch', 'username' => $username]);
     flash_set('bad', 'Пароли не совпадают.');
     redirect('/register/');
   }
@@ -126,29 +43,20 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
       ':u' => $username,
       ':p' => $hash,
       ':r' => 'VIEWER',
-      ':s' => 'PENDING',
+      ':s' => 'ACTIVE',
     ]);
 
-    reg_log('info', 'register_ok', ['username' => $username]);
-
-    flash_set('ok', 'Заявка принята. Доступ будет открыт после одобрения администратора.');
-    redirect('/login/');
+    $id = (int)$pdo->lastInsertId();
+    login_user(['id' => $id, 'username' => $username, 'role' => 'VIEWER', 'status' => 'ACTIVE']);
+    redirect('/');
 
   } catch (PDOException $e) {
-    $sqlstate = (string)$e->getCode();
-
-    reg_log('error', 'register_fail', [
-      'username' => $username,
-      'sqlstate' => $sqlstate,
-      'msg'      => $e->getMessage(),
-    ]);
-
-    if ($sqlstate === '23000') {
+    if ((string)$e->getCode() === '23000') {
       flash_set('bad', 'Этот username уже занят.');
       redirect('/register/');
     }
 
-    flash_set('bad', 'Ошибка сервера при регистрации. Код: ' . $REQUEST_ID);
+    flash_set('bad', 'Ошибка сервера при регистрации.');
     redirect('/register/');
   }
 }
@@ -158,48 +66,77 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
  * ===== Отрисовка страницы =====
  */
 $page_title = 'Регистрация — ОПиПАСР';
+$header_variant = 'public';
+$body_class = 'page-auth';
+$page_wrap_container = false;
 require_once __DIR__ . '/../config/header.php';
 
 $f = flash_get();
-if ($f) {
-  $cls = $f['type'] === 'ok' ? 'alert ok' : 'alert bad';
-  echo '<div class="' . $cls . '"><strong>' . h($f['msg']) . '</strong></div>';
-}
 ?>
 
-<div class="panel">
-  <div class="h1">Регистрация</div>
-  <p class="p">Создайте заявку на доступ. Учётная запись активируется только после одобрения администратора.</p>
-
-  <form method="post" action="/register/">
-    <?= csrf_field() ?>
-
-    <div class="field">
-      <label class="label" for="username">Username</label>
-      <input class="input" id="username" name="username" required
-             placeholder="например: rtp_operator_1"
-             inputmode="latin"
-             pattern="[A-Za-z0-9_]{3,32}"
-             title="Латиница/цифры/подчёркивание, 3–32 символа" />
-      <div class="help">Допустимы: латинские буквы, цифры, подчёркивание. Длина 3–32.</div>
+<section class="auth-shell">
+  <div class="auth-card">
+    <div class="auth-avatar" aria-hidden="true">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5Z" stroke="currentColor" stroke-width="1.6"/>
+        <path d="M4 21c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
     </div>
 
-    <div class="field">
-      <label class="label" for="password">Пароль</label>
-      <input class="input" id="password" name="password" type="password" required minlength="<?= (int)MIN_PASSWORD_LEN ?>" />
-      <div class="help">Минимум <?= (int)MIN_PASSWORD_LEN ?> символов.</div>
-    </div>
+    <div class="auth-title">Регистрация</div>
+    <div class="auth-subtitle">Создайте учётную запись для доступа к закрытому контуру.</div>
 
-    <div class="field">
-      <label class="label" for="password2">Повтор пароля</label>
-      <input class="input" id="password2" name="password2" type="password" required minlength="<?= (int)MIN_PASSWORD_LEN ?>" />
-    </div>
+    <?php if ($f): ?>
+      <div class="alert <?= $f['type'] === 'ok' ? 'ok' : 'bad' ?>"><strong><?= h($f['msg']) ?></strong></div>
+    <?php endif; ?>
 
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
-      <button class="btn btn-primary" type="submit">Отправить заявку</button>
-      <a class="btn btn-ghost" href="/login/">Уже есть доступ? Войти</a>
-    </div>
-  </form>
-</div>
+    <form method="post" action="/register/" autocomplete="off">
+      <?= csrf_field() ?>
+
+      <div class="auth-fields">
+        <div class="auth-input">
+          <div class="auth-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5Z" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M4 21c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <input
+            name="username"
+            required
+            placeholder="Username"
+            inputmode="latin"
+            pattern="[A-Za-z0-9_]{3,32}"
+          />
+        </div>
+
+        <div class="auth-input">
+          <div class="auth-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M7 10h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8"/>
+            </svg>
+          </div>
+          <input name="password" type="password" required minlength="<?= (int)MIN_PASSWORD_LEN ?>" placeholder="Password" />
+        </div>
+
+        <div class="auth-input">
+          <div class="auth-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M7 10h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M12 14v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <input name="password2" type="password" required minlength="<?= (int)MIN_PASSWORD_LEN ?>" placeholder="Repeat password" />
+        </div>
+      </div>
+
+      <button class="btn btn-primary auth-submit" type="submit">REGISTER</button>
+    </form>
+
+    <div class="auth-alt">Уже есть аккаунт? <a href="/login/">Войти</a></div>
+  </div>
+</section>
 
 <?php require_once __DIR__ . '/../config/footer.php'; ?>

@@ -102,4 +102,22 @@ function redirect(string $path): void {
     header('Location: ' . $path); 
     exit; 
 }
+
+function csrf_field(): string {
+    $token = (string)($_SESSION['csrf'] ?? '');
+    return '<input type="hidden" name="csrf" value="' . h($token) . '">';
+}
+
+function require_csrf(): void {
+    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') return;
+
+    $expected = (string)($_SESSION['csrf'] ?? '');
+    $got = (string)($_POST['csrf'] ?? '');
+
+    if ($expected === '' || $got === '' || !hash_equals($expected, $got)) {
+        http_response_code(400);
+        flash_set('bad', 'Ошибка CSRF. Обновите страницу и попробуйте снова.');
+        redirect((string)($_SERVER['REQUEST_URI'] ?? '/'));
+    }
+}
 ?>

@@ -3,6 +3,16 @@ function is_logged_in(): bool { return !empty($_SESSION['user']); }
 function current_user(): ?array { return $_SESSION['user'] ?? null; }
 function require_login(): void { if(!is_logged_in()) redirect('/login/'); }
 function require_role(string $role): void { require_login(); $u=current_user(); if(!$u || strtoupper((string)$u['role'])!==strtoupper($role)){ http_response_code(403); exit('Forbidden'); } }
+function require_any_role(array $roles): void {
+  require_login();
+  $u = current_user();
+  $r = strtoupper((string)($u['role'] ?? ''));
+  $allowed = array_map(static fn($v) => strtoupper((string)$v), $roles);
+  if ($r === '' || !in_array($r, $allowed, true)) {
+    http_response_code(403);
+    exit('Forbidden');
+  }
+}
 function login_user(array $user): void { session_regenerate_id(true); $_SESSION['user']=['id'=>(int)$user['id'],'username'=>(string)$user['username'],'role'=>(string)$user['role'],'status'=>(string)$user['status']]; }
 function logout_user(): void { $_SESSION=[]; if(ini_get('session.use_cookies')){ $p=session_get_cookie_params(); setcookie(session_name(),'',
 time()-42000,$p['path'],$p['domain'],(bool)$p['secure'],(bool)$p['httponly']); } session_destroy(); }

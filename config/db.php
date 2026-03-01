@@ -1,24 +1,33 @@
 <?php
 declare(strict_types=1);
 
-// Параметры подключения
-$host = 'localhost';
-$dbname = 'u3052693_default';
-$user = 'u3052693_default';
-$password = '28RwFk3TptuOFpo5';
+$pdo = null;
 
-try {
-    // Инициализация PDO
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $user, $password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    // Логируем ошибку в файл error_log.txt
-    error_log('Ошибка подключения: ' . $e->getMessage(), 3, __DIR__ . '/www/opipasr.ru/config/error_log.txt');  // Путь к файлу логов
+function db(): PDO {
+    global $pdo;
 
-    // Выводим ошибку на экран для быстрого анализа
-    echo 'Подключение не удалось: ' . $e->getMessage(); 
+    if ($pdo instanceof PDO) {
+        return $pdo;
+    }
 
-    // Завершаем выполнение скрипта
-    exit;
+    $host = defined('DB_HOST') ? (string)DB_HOST : 'localhost';
+    $dbname = defined('DB_NAME') ? (string)DB_NAME : 'u3052693_default';
+    $charset = defined('DB_CHARSET') ? (string)DB_CHARSET : 'utf8mb4';
+    $user = defined('DB_USER') ? (string)DB_USER : 'u3052693_default';
+    $password = defined('DB_PASS') ? (string)DB_PASS : '28RwFk3TptuOFpo5';
+
+    try {
+        $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=$charset", $user, $password);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        return $pdo;
+    } catch (PDOException $e) {
+        error_log('DB connect error: ' . $e->getMessage());
+        http_response_code(500);
+        exit('DB connection failed');
+    }
 }
+
+// Legacy compatibility: many files expect $pdo to exist.
+db();
 ?>

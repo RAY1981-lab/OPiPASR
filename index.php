@@ -5,10 +5,27 @@ require_once __DIR__ . '/config/bootstrap.php';
 
 $page_title = 'ОПиПАСР — Пожаротушение, АСР, БАС';
 $page_wrap_container = false;
+$header_variant = is_logged_in() ? 'private' : 'public';
+$body_class = is_logged_in() ? '' : 'page-public';
 
 require_once __DIR__ . '/config/header.php';
 ?>
 
+<?php if (!is_logged_in()): ?>
+  <section class="landing">
+    <div class="container landing-inner">
+      <a class="project-logo" href="/login/" aria-label="Войти в систему">
+        <img src="/assets/logo.png" alt="Логотип ОПиПАСР" width="220" height="220" />
+      </a>
+      <div class="landing-title">ОПиПАСР</div>
+      <div class="landing-subtitle">Информационно-аналитическая платформа поддержки решений</div>
+      <div class="landing-actions">
+        <a class="btn btn-primary" href="/login/">Вход</a>
+        <a class="btn btn-ghost" href="/register/">Регистрация</a>
+      </div>
+    </div>
+  </section>
+<?php else: ?>
 <section class="hero">
   <div class="container hero-inner">
     <div class="hero-copy">
@@ -157,5 +174,6 @@ require_once __DIR__ . '/config/header.php';
   </div>
 </section>
 
-<?php
-require_once __DIR__ . '/config/footer.php';
+<?php endif; ?>
+
+<?php require_once __DIR__ . '/config/footer.php'; ?>
