@@ -42,12 +42,27 @@ function default_permissions_for_role(string $role): array {
     'methods'   => ['view' => true,  'edit' => false],
     'about'     => ['view' => true,  'edit' => false],
     'contacts'  => ['view' => true,  'edit' => false],
-    'cabinet'   => ['view' => false, 'edit' => false],
+    'cabinet'   => ['view' => true,  'edit' => false],
+    'telemetry' => ['view' => false, 'edit' => false],
+    'incidents' => ['view' => false, 'edit' => false],
+    'reports'   => ['view' => false, 'edit' => false],
+    'calculators' => ['view' => true, 'edit' => false],
     'admin'     => ['view' => false, 'edit' => false],
   ];
 
-  if ($r === 'RTP' || $r === 'CUKS') {
-    $base['cabinet']['view'] = true;
+  if ($r === 'RTP') {
+    $base['telemetry']['view'] = true;
+    $base['incidents']['view'] = true;
+    $base['incidents']['edit'] = true;
+    $base['reports']['view'] = true;
+    $base['reports']['edit'] = true;
+  }
+  if ($r === 'CUKS') {
+    $base['telemetry']['view'] = true;
+    $base['incidents']['view'] = true;
+    $base['incidents']['edit'] = true;
+    $base['reports']['view'] = true;
+    $base['reports']['edit'] = true;
   }
   if ($r === 'ADMIN') {
     foreach ($base as $k => $_) {

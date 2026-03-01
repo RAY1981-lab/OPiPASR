@@ -27,6 +27,10 @@ $perms = [
   'about'     => 'О системе',
   'contacts'  => 'Контакты',
   'cabinet'   => 'Кабинет',
+  'telemetry' => 'Телеметрия',
+  'incidents' => 'Инциденты',
+  'reports'   => 'Отчёты',
+  'calculators' => 'Калькуляторы',
   'admin'     => 'Админ-панель',
 ];
 
@@ -148,4 +152,3 @@ require_once __DIR__ . '/../config/header.php';
 </div>
 
 <?php require_once __DIR__ . '/../config/footer.php'; ?>
-

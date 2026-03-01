@@ -83,7 +83,16 @@ $path = $path === '/index.php' ? '/' : $path;
       <?php if (can_permission('cabinet', 'view')): ?>
         <div class="side-divider" role="separator" aria-hidden="true"></div>
         <div class="side-head">Закрытый контур</div>
-        <a class="side-link<?= strncmp($path, '/app/', 5) === 0 ? ' is-active' : '' ?>" href="/app/">Кабинет</a>
+        <a class="side-link<?= $path === '/app/' || $path === '/app/index.php' ? ' is-active' : '' ?>" href="/app/">Кабинет (обзор)</a>
+        <?php if (can_permission('telemetry', 'view')): ?>
+          <a class="side-link<?= $path === '/app/telemetry.php' ? ' is-active' : '' ?>" href="/app/telemetry.php">Телеметрия</a>
+        <?php endif; ?>
+        <?php if (can_permission('incidents', 'view')): ?>
+          <a class="side-link<?= $path === '/app/incidents.php' ? ' is-active' : '' ?>" href="/app/incidents.php">Инциденты</a>
+        <?php endif; ?>
+        <?php if (can_permission('reports', 'view')): ?>
+          <a class="side-link<?= $path === '/app/reports.php' ? ' is-active' : '' ?>" href="/app/reports.php">Отчёты</a>
+        <?php endif; ?>
       <?php endif; ?>
 
       <?php if ($can_admin): ?>
