@@ -77,17 +77,14 @@ $telemetry_live = ($stateClass === 'ok');
       <div class="kv" data-live-source="weather">
         <div class="kv-k">Температура</div>
         <div class="kv-v" id="wx_temp">—</div>
-        <div class="kv-hint">Источник: OpenWeatherMap</div>
       </div>
       <div class="kv" data-live-source="weather">
         <div class="kv-k">Влажность</div>
         <div class="kv-v" id="wx_humidity">—</div>
-        <div class="kv-hint">Источник: OpenWeatherMap</div>
       </div>
       <div class="kv" data-live-source="weather">
         <div class="kv-k">Давление</div>
         <div class="kv-v" id="wx_pressure">—</div>
-        <div class="kv-hint">Источник: OpenWeatherMap</div>
       </div>
       <div class="kv" data-live-source="weather">
         <div class="kv-k">Ветер и направление</div>
@@ -97,12 +94,10 @@ $telemetry_live = ($stateClass === 'ok');
       <div class="kv" data-live-source="weather">
         <div class="kv-k">Видимость</div>
         <div class="kv-v" id="wx_visibility">—</div>
-        <div class="kv-hint">Источник: OpenWeatherMap</div>
       </div>
       <div class="kv" data-live-source="weather">
         <div class="kv-k">Облачность</div>
         <div class="kv-v" id="wx_clouds">—</div>
-        <div class="kv-hint">Источник: OpenWeatherMap</div>
       </div>
       <div class="kv" data-live-source="weather">
         <div class="kv-k">Осадки</div>
@@ -110,6 +105,7 @@ $telemetry_live = ($stateClass === 'ok');
         <div class="kv-hint">За последний час</div>
       </div>
     </div>
+    <div class="kv-hint" id="wx_status" style="margin-top:10px">Статус подключения: —</div>
   </div>
 
   <div class="feature">
@@ -270,6 +266,8 @@ async function fetchData() {
       document.getElementById('wx_visibility').innerText = `${vis} м`;
       document.getElementById('wx_clouds').innerText = `${cl} %`;
       document.getElementById('wx_precip').innerText = `${pr} мм/ч`;
+      const wxStatus = document.getElementById('wx_status');
+      if (wxStatus) wxStatus.innerText = 'Статус подключения: ОК';
       setLive('weather', true);
       if (weatherTile) weatherTile.classList.add('is-live');
     } else {
@@ -283,6 +281,8 @@ async function fetchData() {
       document.getElementById('wx_visibility').innerText = err;
       document.getElementById('wx_clouds').innerText = err;
       document.getElementById('wx_precip').innerText = err;
+      const wxStatus = document.getElementById('wx_status');
+      if (wxStatus) wxStatus.innerText = `Статус подключения: ${err}`;
     }
   } catch (e) {
     console.error('Ошибка получения данных:', e);
