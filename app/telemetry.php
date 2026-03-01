@@ -244,6 +244,10 @@ async function fetchData() {
     } else {
       setLive('weather', false);
       if (weatherTile) weatherTile.classList.remove('is-live');
+      const hint = document.getElementById('wx_vis');
+      if (hint && data.weather_error) {
+        hint.innerText = `Источник: OpenWeatherMap (${data.weather_error})`;
+      }
     }
   } catch (e) {
     console.error('Ошибка получения данных:', e);

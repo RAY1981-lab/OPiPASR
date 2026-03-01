@@ -39,10 +39,11 @@ function log_payload(PDO $pdo, string $source, array $payload, int $interval_sec
   setting_set($last_key, (string)$now);
 }
 
-function fetch_openweather(PDO $pdo): ?array {
+function fetch_openweather(PDO $pdo, ?string &$err = null): ?array {
   $enabled = setting_get('weather_enabled', '0') === '1';
   $key = trim((string)setting_get('weather_api_key', ''));
-  if (!$enabled || $key === '') return null;
+  if (!$enabled) { $err = 'weather_disabled'; return null; }
+  if ($key === '') { $err = 'missing_api_key'; return null; }
 
   $interval = (int)setting_get('weather_interval_sec', '300');
   $now = time();
@@ -67,11 +68,23 @@ function fetch_openweather(PDO $pdo): ?array {
       "&appid=" . rawurlencode($key) . "&units=" . rawurlencode($units) . "&lang=" . rawurlencode($lang);
   }
 
-  $ctx = stream_context_create(['http' => ['timeout' => 6]]);
-  $json = @file_get_contents($url, false, $ctx);
-  if (!$json) return null;
+  $json = null;
+  if (ini_get('allow_url_fopen')) {
+    $ctx = stream_context_create(['http' => ['timeout' => 6]]);
+    $json = @file_get_contents($url, false, $ctx);
+  }
+  if (!$json && function_exists('curl_init')) {
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 6);
+    $json = curl_exec($ch);
+    curl_close($ch);
+  }
+  if (!$json) { $err = 'fetch_failed'; return null; }
   $data = json_decode($json, true);
-  if (!is_array($data)) return null;
+  if (!is_array($data)) { $err = 'bad_json'; return null; }
+  if (!empty($data['cod']) && (int)$data['cod'] !== 200) { $err = 'api_error'; return null; }
 
   $payload = [
     'ts' => $data['dt'] ?? time(),
@@ -171,6 +184,10 @@ try {
     'ts' => $last['ts'] ?? null,
   ];
 
+  // ---- Weather fetch (always try if enabled) ----
+  $weather_err = null;
+  $weather = fetch_openweather($pdo, $weather_err);
+
   // ---- Logging (telemetry + weather) ----
   $log_enabled = setting_get('telemetry_log_enabled', '1') === '1';
   if ($log_enabled) {
@@ -207,7 +224,6 @@ try {
     log_payload($pdo, 'ibas', $filtered, $interval, 'telemetry_last_log_ts');
 
     // weather
-    $weather = fetch_openweather($pdo);
     if (is_array($weather)) {
       $wmap = [
         'weather_temp' => 'temp',
@@ -232,6 +248,7 @@ try {
   } else {
     $response['weather'] = null;
     $response['weather_ok'] = false;
+    if ($weather_err) $response['weather_error'] = $weather_err;
   }
 
   echo json_encode($response, JSON_UNESCAPED_UNICODE);
