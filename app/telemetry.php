@@ -73,7 +73,7 @@ $telemetry_live = ($stateClass === 'ok');
 <div class="features">
   <div class="feature">
     <div class="feature-title">Погода</div>
-    <div class="kv-grid" style="margin-top:12px">
+    <div class="kv-grid kv-grid--weather" data-live-tile="weather" style="margin-top:12px">
       <div class="kv" data-live-source="weather">
         <div class="kv-k">Погода (Росгидрометцентр)</div>
         <div class="kv-v" id="wx_main">T 1,6 °C · RH 78% · P 1012 гПа</div>
@@ -223,6 +223,7 @@ async function fetchData() {
     const live = (data.state_class ?? '') === 'ok';
     setLive('telemetry', live);
 
+    const weatherTile = document.querySelector('[data-live-tile="weather"]');
     if (data.weather_ok && data.weather) {
       const w = data.weather;
       const temp = (w.temp ?? '—');
@@ -239,8 +240,10 @@ async function fetchData() {
       document.getElementById('wx_wind').innerText = `${ws} м/с · порывы ${wg} м/с · ${wd}°`;
       document.getElementById('wx_vis').innerText = `${vis} м · облачность ${cl}% · осадки ${pr} мм/ч`;
       setLive('weather', true);
+      if (weatherTile) weatherTile.classList.add('is-live');
     } else {
       setLive('weather', false);
+      if (weatherTile) weatherTile.classList.remove('is-live');
     }
   } catch (e) {
     console.error('Ошибка получения данных:', e);

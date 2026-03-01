@@ -630,6 +630,19 @@ h2{
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px 14px;
 }
+.kv-grid--weather{
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.kv-grid--weather .kv{
+  height: 100%;
+}
+.kv-grid--weather.is-live{
+  border: 1px solid rgba(52,211,153,0.55);
+  box-shadow: 0 0 0 2px rgba(52,211,153,0.10), 0 18px 45px rgba(0,0,0,0.22);
+  border-radius: 16px;
+  padding: 6px;
+  background: rgba(52,211,153,0.03);
+}
 .kv{
   border: 1px solid rgba(255,255,255,0.10);
   border-radius: 14px;
