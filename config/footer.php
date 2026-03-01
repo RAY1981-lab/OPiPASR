@@ -4,6 +4,11 @@
 <?php endif; ?>
 </main>
 
+<?php $header_variant = $header_variant ?? (function_exists('is_logged_in') && is_logged_in() ? 'private' : 'public'); ?>
+<?php if ($header_variant !== 'public'): ?>
+  </div>
+<?php endif; ?>
+
 <footer class="site-footer" role="contentinfo">
   <div class="container footer-inner">
     <div class="footer-right">

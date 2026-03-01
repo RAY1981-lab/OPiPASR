@@ -91,16 +91,39 @@ function db_seed_default_admin(PDO $pdo): void {
     if ($done) return;
     $done = true;
 
-    // Create a default admin only if no admins exist.
-    $stmt = $pdo->query("SELECT id FROM users WHERE role='ADMIN' LIMIT 1");
-    $admin = $stmt ? $stmt->fetch() : null;
-    if ($admin) return;
-
     $username = 'Admin';
     $password = 'Admin-01';
     $hash = password_hash($password, PASSWORD_DEFAULT);
 
     try {
+        // If an ADMIN exists but is not ACTIVE, activate it (initial bootstrap).
+        $stmtA = $pdo->query("SELECT id, username, status FROM users WHERE role='ADMIN' LIMIT 1");
+        $admin = $stmtA ? $stmtA->fetch() : null;
+        if ($admin) {
+            $status = strtoupper((string)($admin['status'] ?? ''));
+            if ($status !== 'ACTIVE') {
+                $pdo->prepare("
+                    UPDATE users
+                    SET pass_hash=:p, status='ACTIVE', approved_at=NOW(), approved_by=NULL
+                    WHERE id=:id
+                ")->execute([':p' => $hash, ':id' => (int)$admin['id']]);
+            }
+            return;
+        }
+
+        $stmtU = $pdo->prepare("SELECT id FROM users WHERE username=:u LIMIT 1");
+        $stmtU->execute([':u' => $username]);
+        $row = $stmtU->fetch();
+
+        if ($row) {
+            $pdo->prepare("
+                UPDATE users
+                SET pass_hash=:p, role='ADMIN', status='ACTIVE', approved_at=NOW(), approved_by=NULL
+                WHERE id=:id
+            ")->execute([':p' => $hash, ':id' => (int)$row['id']]);
+            return;
+        }
+
         $pdo->prepare("
             INSERT INTO users (username, pass_hash, role, status, approved_at, approved_by)
             VALUES (:u, :p, 'ADMIN', 'ACTIVE', NOW(), NULL)

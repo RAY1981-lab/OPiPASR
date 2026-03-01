@@ -25,8 +25,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([':u' => $username]);
         $user = $stmt->fetch();
 
+        $hash = (string)($user['pass_hash'] ?? $user['password_hash'] ?? $user['password'] ?? '');
         // Если пользователь не найден или пароль неверный
-        if (!$user || !password_verify($password, (string)$user['pass_hash'])) {
+        if (!$user || $hash === '' || !password_verify($password, $hash)) {
             flash_set('bad', 'Неверный логин или пароль.');
             redirect('/admin/login.php');
         }

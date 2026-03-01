@@ -12,11 +12,12 @@ if (!defined('OPIPASR_INGEST_KEY') || $key === '' || !hash_equals((string)OPIPAS
 }
 
 $force = (string)($_GET['force'] ?? '') === '1';
+$reset = (string)($_GET['reset'] ?? '') === '1';
 
 $pdo = db();
 
 $admin = $pdo->query("SELECT id, username, role, status FROM users WHERE role='ADMIN' LIMIT 1")->fetch();
-if ($admin) {
+if ($admin && !$reset) {
   header('Content-Type: text/plain; charset=utf-8');
   exit("OK: ADMIN already exists (username={$admin['username']})\n");
 }
@@ -24,6 +25,14 @@ if ($admin) {
 $username = 'Admin';
 $password = 'Admin-01';
 $hash = password_hash($password, PASSWORD_DEFAULT);
+
+$admin_id = $admin ? (int)($admin['id'] ?? 0) : 0;
+if ($admin_id > 0 && $reset) {
+  $pdo->prepare("UPDATE users SET pass_hash=:p, status='ACTIVE', approved_at=NOW(), approved_by=NULL WHERE id=:id")
+      ->execute([':p' => $hash, ':id' => $admin_id]);
+  header('Content-Type: text/plain; charset=utf-8');
+  exit("OK: ADMIN password reset. Login: {$admin['username']} / {$password}\n");
+}
 
 $existing = $pdo->prepare("SELECT id, username, role, status FROM users WHERE username=:u LIMIT 1");
 $existing->execute([':u' => $username]);
@@ -55,4 +64,3 @@ $pdo->prepare("
 
 header('Content-Type: text/plain; charset=utf-8');
 exit("OK: ADMIN created. Login: {$username} / {$password}\n");
-

@@ -29,8 +29,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([':u' => $username]);
         $user = $stmt->fetch();
 
+        $hash = (string)($user['pass_hash'] ?? $user['password_hash'] ?? $user['password'] ?? '');
         // Если пользователь не найден или пароль неверный
-        if (!$user || !password_verify($password, (string)$user['pass_hash'])) {
+        if (!$user || $hash === '' || !password_verify($password, $hash)) {
             flash_set('bad', 'Неверный логин или пароль.');
             redirect('/login/');
         }
@@ -54,10 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Логиним пользователя
         login_user($user);
 
-        // Перенаправление: в кабинет (если доступен) или на главную (закрытый контур)
-        if (can_permission('cabinet', 'view')) {
-            redirect('/app/');
-        }
+        // Перенаправление в авторизованный контур (главная)
         redirect('/');
     } catch (Throwable $e) {
         flash_set('bad', 'Ошибка сервера при входе.');

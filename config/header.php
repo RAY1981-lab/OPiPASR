@@ -6,6 +6,8 @@ $can_cabinet = is_logged_in() && can_permission('cabinet', 'view');
 $can_admin = is_logged_in() && strtoupper((string)$role) === 'ADMIN';
 $header_variant = $header_variant ?? (is_logged_in() ? 'private' : 'public');
 $body_class = trim((string)($body_class ?? ''));
+$path = parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/';
+$path = $path === '/index.php' ? '/' : $path;
 ?>
 <!doctype html>
 <html lang="ru">
@@ -21,52 +23,34 @@ $body_class = trim((string)($body_class ?? ''));
 <a class="skip-link" href="#content">Перейти к содержимому</a>
 
 <header class="site-header" role="banner">
-  <div class="container header-inner<?= $header_variant === 'public' ? ' header-inner--public' : '' ?>">
-    <?php if ($header_variant !== 'public'): ?>
-      <a class="brand" href="/" aria-label="На главную">
-        <img src="/assets/logo.png" alt="Логотип ОПиПАСР" class="logo" width="28" height="28" />
-        <span class="brand-text">
-          <span class="brand-title">ОПиПАСР</span>
-          <span class="brand-subtitle">НТД • методики • кабинет РТП</span>
-        </span>
-      </a>
-
-      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
-        <span class="nav-toggle__bar" aria-hidden="true"></span>
-        <span class="sr-only">Открыть меню</span>
-      </button>
-    <?php endif; ?>
-
-    <nav id="site-nav" class="site-nav<?= $header_variant === 'public' ? ' site-nav--public' : '' ?>" role="navigation" aria-label="Основное меню">
+  <div class="container header-inner">
+    <div style="display:flex;align-items:center;gap:12px;min-width:0">
       <?php if ($header_variant !== 'public'): ?>
-        <?php if (can_permission('normative', 'view')): ?>
-          <a class="nav-link" href="/normative/">Нормативные документы</a>
-        <?php endif; ?>
-        <?php if (can_permission('methods', 'view')): ?>
-          <a class="nav-link" href="/methods/">Методики и модели</a>
-        <?php endif; ?>
-        <?php if (can_permission('about', 'view')): ?>
-          <a class="nav-link" href="/about/">О&nbsp;системе</a>
-        <?php endif; ?>
+        <button class="sidebar-toggle" type="button" aria-expanded="false" aria-controls="side-nav">
+          <span class="sidebar-toggle__bar" aria-hidden="true"></span>
+          <span class="sr-only">Открыть навигацию</span>
+        </button>
       <?php endif; ?>
 
+      <a class="brand" href="/" aria-label="ОПиПАСР — на главную">
+        <img src="/assets/logo.png" alt="Логотип ОПиПАСР" class="logo" />
+        <span class="brand-text">
+          <span class="brand-title">ОПиПАСР</span>
+        </span>
+      </a>
+    </div>
+
+    <nav id="site-nav" class="site-nav<?= $header_variant === 'public' ? ' site-nav--public' : '' ?>" role="navigation" aria-label="Верхнее меню">
       <?php if ($header_variant === 'public' || can_permission('contacts', 'view')): ?>
         <a class="nav-link" href="/contacts/">Контакты</a>
       <?php endif; ?>
 
       <div class="nav-actions">
         <?php if (is_logged_in()): ?>
-
           <?php if ($can_admin): ?>
             <a class="btn btn-ghost" href="/admin/approvals.php">Админ</a>
           <?php endif; ?>
-
-          <?php if ($can_cabinet): ?>
-            <a class="btn btn-ghost" href="/app/">Кабинет</a>
-          <?php endif; ?>
-
           <a class="btn btn-primary" href="/logout/">Выход</a>
-
         <?php else: ?>
           <a class="btn btn-ghost" href="/login/">Вход</a>
           <a class="btn btn-primary" href="/register/">Регистрация</a>
@@ -76,7 +60,43 @@ $body_class = trim((string)($body_class ?? ''));
   </div>
 </header>
 
-<main id="content" class="main" role="main">
+<?php if ($header_variant !== 'public'): ?>
+  <div class="app-shell">
+    <aside id="side-nav" class="side-nav" role="navigation" aria-label="Навигация по сайту">
+      <div class="side-head">Разделы</div>
+
+      <a class="side-link<?= $path === '/' ? ' is-active' : '' ?>" href="/">Главная</a>
+
+      <?php if (can_permission('normative', 'view')): ?>
+        <a class="side-link<?= strncmp($path, '/normative/', 11) === 0 ? ' is-active' : '' ?>" href="/normative/">Нормативные документы</a>
+      <?php endif; ?>
+      <?php if (can_permission('methods', 'view')): ?>
+        <a class="side-link<?= strncmp($path, '/methods/', 9) === 0 ? ' is-active' : '' ?>" href="/methods/">Методики и модели</a>
+      <?php endif; ?>
+      <?php if (can_permission('about', 'view')): ?>
+        <a class="side-link<?= strncmp($path, '/about/', 7) === 0 ? ' is-active' : '' ?>" href="/about/">О системе</a>
+      <?php endif; ?>
+      <?php if (can_permission('contacts', 'view')): ?>
+        <a class="side-link<?= strncmp($path, '/contacts/', 10) === 0 ? ' is-active' : '' ?>" href="/contacts/">Контакты</a>
+      <?php endif; ?>
+
+      <?php if (can_permission('cabinet', 'view')): ?>
+        <div class="side-divider" role="separator" aria-hidden="true"></div>
+        <div class="side-head">Закрытый контур</div>
+        <a class="side-link<?= strncmp($path, '/app/', 5) === 0 ? ' is-active' : '' ?>" href="/app/">Кабинет</a>
+      <?php endif; ?>
+
+      <?php if ($can_admin): ?>
+        <div class="side-divider" role="separator" aria-hidden="true"></div>
+        <div class="side-head">Администрирование</div>
+        <a class="side-link<?= $path === '/admin/approvals.php' ? ' is-active' : '' ?>" href="/admin/approvals.php">Заявки и пользователи</a>
+      <?php endif; ?>
+    </aside>
+
+    <main id="content" class="main main--app" role="main">
+<?php else: ?>
+  <main id="content" class="main" role="main">
+<?php endif; ?>
   <?php $page_wrap_container = $page_wrap_container ?? true; ?>
   <?php if ($page_wrap_container): ?>
     <div class="container">
