@@ -9,7 +9,7 @@ $can_cabinet = is_logged_in() && in_array($role, ['ADMIN','OPERATOR','RTP'], tru
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="opipasr.ru — нормативные документы, литература, методики и закрытый кабинет для телеметрии БАС и поддержки принятия решений РТП." />
+  <meta name="description" content="opipasr.ru — нормативные документы, методики и закрытый кабинет для телеметрии БАС и поддержки принятия решений РТП." />
   <title><?= h($page_title ?? 'ОПиПАСР') ?></title>
   <link rel="icon" href="/assets/logo.png" />
   <link rel="stylesheet" href="/assets/styles.css?v=<?= @filemtime(__DIR__ . '/../assets/styles.css') ?: time() ?>" />
@@ -23,7 +23,7 @@ $can_cabinet = is_logged_in() && in_array($role, ['ADMIN','OPERATOR','RTP'], tru
       <img src="/assets/logo.png" alt="Логотип ОПиПАСР" class="logo" width="28" height="28" />
       <span class="brand-text">
         <span class="brand-title">ОПиПАСР</span>
-        <span class="brand-subtitle">НТД • литература • методики • кабинет РТП</span>
+        <span class="brand-subtitle">НТД • методики • кабинет РТП</span>
       </span>
     </a>
 
@@ -34,9 +34,8 @@ $can_cabinet = is_logged_in() && in_array($role, ['ADMIN','OPERATOR','RTP'], tru
 
     <nav id="site-nav" class="site-nav" role="navigation" aria-label="Основное меню">
       <a class="nav-link" href="/normative/">Нормативные документы</a>
-      <a class="nav-link" href="/literature/">Литература</a>
       <a class="nav-link" href="/methods/">Методики и модели</a>
-      <a class="nav-link" href="/about/">О системе</a>
+      <a class="nav-link" href="/about/">О&nbsp;системе</a>
       <a class="nav-link" href="/contacts/">Контакты</a>
 
       <div class="nav-actions">
@@ -58,4 +57,7 @@ $can_cabinet = is_logged_in() && in_array($role, ['ADMIN','OPERATOR','RTP'], tru
 </header>
 
 <main id="content" class="main" role="main">
-  <div class="container">
+  <?php $page_wrap_container = $page_wrap_container ?? true; ?>
+  <?php if ($page_wrap_container): ?>
+    <div class="container">
+  <?php endif; ?>
