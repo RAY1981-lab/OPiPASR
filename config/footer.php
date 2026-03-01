@@ -14,5 +14,6 @@
 </footer>
 
 <script src="/assets/main.js"></script>
+<script src="/assets/calculators.js"></script>
 </body>
 </html>
