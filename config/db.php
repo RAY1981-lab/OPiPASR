@@ -84,6 +84,56 @@ function db_ensure_schema(PDO $pdo): void {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ");
     }
+
+    if (!db_has_table($pdo, 'site_settings')) {
+        $pdo->exec("
+            CREATE TABLE site_settings (
+              setting_key VARCHAR(64) NOT NULL,
+              setting_value TEXT NOT NULL,
+              updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+              PRIMARY KEY (setting_key)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    }
+
+    if (!db_has_table($pdo, 'telemetry_fields')) {
+        $pdo->exec("
+            CREATE TABLE telemetry_fields (
+              field_key VARCHAR(64) NOT NULL,
+              category VARCHAR(32) NOT NULL,
+              enabled TINYINT(1) NOT NULL DEFAULT 1,
+              updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+              PRIMARY KEY (field_key),
+              KEY idx_tf_cat (category)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    }
+
+    if (!db_has_table($pdo, 'telemetry_log')) {
+        $pdo->exec("
+            CREATE TABLE telemetry_log (
+              id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+              source VARCHAR(16) NOT NULL,
+              payload JSON NULL,
+              created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY (id),
+              KEY idx_tl_source (source),
+              KEY idx_tl_created (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    }
+
+    if (!db_has_table($pdo, 'weather_cache')) {
+        $pdo->exec("
+            CREATE TABLE weather_cache (
+              id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+              payload JSON NULL,
+              fetched_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY (id),
+              KEY idx_wc_time (fetched_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    }
 }
 
 function db_seed_default_admin(PDO $pdo): void {
@@ -134,6 +184,90 @@ function db_seed_default_admin(PDO $pdo): void {
     }
 }
 
+function db_seed_telemetry_fields(PDO $pdo): void {
+    static $done = false;
+    if ($done) return;
+    $done = true;
+
+    $fields = [
+        // weather
+        ['weather_temp', 'weather'],
+        ['weather_humidity', 'weather'],
+        ['weather_pressure', 'weather'],
+        ['weather_wind_speed', 'weather'],
+        ['weather_wind_gust', 'weather'],
+        ['weather_wind_dir', 'weather'],
+        ['weather_visibility', 'weather'],
+        ['weather_clouds', 'weather'],
+        ['weather_precip', 'weather'],
+
+        // sensors
+        ['gas_co', 'sensors'],
+        ['gas_ch4', 'sensors'],
+        ['gas_lpg', 'sensors'],
+        ['gas_h2', 'sensors'],
+        ['smoke_temp', 'sensors'],
+
+        // platform
+        ['link_status', 'platform'],
+        ['last_seen', 'platform'],
+        ['age_sec', 'platform'],
+        ['uav_id', 'platform'],
+        ['device', 'platform'],
+        ['ts', 'platform'],
+        ['coords', 'platform'],
+        ['flight_vector', 'platform'],
+        ['battery', 'platform'],
+        ['nav_state', 'platform'],
+        ['link_rate', 'platform'],
+        ['motors_rpm', 'platform'],
+        ['body_temp', 'platform'],
+    ];
+
+    foreach ($fields as [$key, $cat]) {
+        try {
+            $pdo->prepare("
+                INSERT INTO telemetry_fields (field_key, category, enabled)
+                VALUES (:k, :c, 1)
+                ON DUPLICATE KEY UPDATE category=VALUES(category)
+            ")->execute([':k' => $key, ':c' => $cat]);
+        } catch (Throwable $e) {
+            // ignore seeding errors
+        }
+    }
+}
+
+function db_seed_default_settings(PDO $pdo): void {
+    static $done = false;
+    if ($done) return;
+    $done = true;
+
+    $defaults = [
+        'telemetry_log_enabled' => '1',
+        'telemetry_log_interval_sec' => '30',
+        'weather_enabled' => '0',
+        'weather_api_key' => '',
+        'weather_lat' => '59.9342',
+        'weather_lon' => '30.3351',
+        'weather_city' => '',
+        'weather_units' => 'metric',
+        'weather_lang' => 'ru',
+        'weather_interval_sec' => '300',
+    ];
+
+    foreach ($defaults as $k => $v) {
+        try {
+            $pdo->prepare("
+                INSERT INTO site_settings (setting_key, setting_value)
+                VALUES (:k, :v)
+                ON DUPLICATE KEY UPDATE setting_key=setting_key
+            ")->execute([':k' => $k, ':v' => $v]);
+        } catch (Throwable $e) {
+            // ignore
+        }
+    }
+}
+
 function db(): PDO {
     global $pdo;
 
@@ -153,6 +287,8 @@ function db(): PDO {
         $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
         db_ensure_schema($pdo);
         db_seed_default_admin($pdo);
+        db_seed_telemetry_fields($pdo);
+        db_seed_default_settings($pdo);
         return $pdo;
     } catch (PDOException $e) {
         error_log('DB connect error: ' . $e->getMessage());

@@ -99,6 +99,7 @@ $path = $path === '/index.php' ? '/' : $path;
         <div class="side-divider" role="separator" aria-hidden="true"></div>
         <div class="side-head">Администрирование</div>
         <a class="side-link<?= $path === '/admin/approvals.php' ? ' is-active' : '' ?>" href="/admin/approvals.php">Заявки и пользователи</a>
+        <a class="side-link<?= $path === '/admin/settings.php' ? ' is-active' : '' ?>" href="/admin/settings.php">Настройки телеметрии</a>
       <?php endif; ?>
     </aside>
 

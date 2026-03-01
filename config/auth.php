@@ -47,6 +47,7 @@ function default_permissions_for_role(string $role): array {
     'incidents' => ['view' => false, 'edit' => false],
     'reports'   => ['view' => false, 'edit' => false],
     'calculators' => ['view' => true, 'edit' => false],
+    'settings'  => ['view' => false, 'edit' => false],
     'admin'     => ['view' => false, 'edit' => false],
   ];
 

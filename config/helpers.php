@@ -103,6 +103,38 @@ function redirect(string $path): void {
     exit; 
 }
 
+/**
+ * =====================================================
+ * Site settings helpers (stored in site_settings table)
+ * =====================================================
+ */
+function setting_get(string $key, $default = null) {
+    try {
+        $pdo = db();
+        $stmt = $pdo->prepare("SELECT setting_value FROM site_settings WHERE setting_key=:k LIMIT 1");
+        $stmt->execute([':k' => $key]);
+        $val = $stmt->fetchColumn();
+        if ($val === false || $val === null) return $default;
+        return $val;
+    } catch (Throwable $e) {
+        return $default;
+    }
+}
+
+function setting_set(string $key, string $value): void {
+    try {
+        $pdo = db();
+        $stmt = $pdo->prepare("
+            INSERT INTO site_settings (setting_key, setting_value)
+            VALUES (:k, :v)
+            ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value)
+        ");
+        $stmt->execute([':k' => $key, ':v' => $value]);
+    } catch (Throwable $e) {
+        // ignore
+    }
+}
+
 function csrf_field(): string {
     $token = (string)($_SESSION['csrf'] ?? '');
     return '<input type="hidden" name="csrf" value="' . h($token) . '">';

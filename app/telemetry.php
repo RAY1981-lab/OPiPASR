@@ -222,6 +222,26 @@ async function fetchData() {
 
     const live = (data.state_class ?? '') === 'ok';
     setLive('telemetry', live);
+
+    if (data.weather_ok && data.weather) {
+      const w = data.weather;
+      const temp = (w.temp ?? '—');
+      const rh = (w.humidity ?? '—');
+      const p = (w.pressure ?? '—');
+      const ws = (w.wind_speed ?? '—');
+      const wg = (w.wind_gust ?? '—');
+      const wd = (w.wind_deg ?? '—');
+      const vis = (w.visibility ?? '—');
+      const cl = (w.clouds ?? '—');
+      const pr = (w.precip ?? '—');
+
+      document.getElementById('wx_main').innerText = `T ${temp} °C · RH ${rh}% · P ${p} гПа`;
+      document.getElementById('wx_wind').innerText = `${ws} м/с · порывы ${wg} м/с · ${wd}°`;
+      document.getElementById('wx_vis').innerText = `${vis} м · облачность ${cl}% · осадки ${pr} мм/ч`;
+      setLive('weather', true);
+    } else {
+      setLive('weather', false);
+    }
   } catch (e) {
     console.error('Ошибка получения данных:', e);
   }

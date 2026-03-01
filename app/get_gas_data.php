@@ -9,6 +9,91 @@ require_permission('telemetry', 'view');
 
 $pdo = db();
 
+function get_enabled_fields(PDO $pdo): array {
+  $rows = $pdo->query("SELECT field_key FROM telemetry_fields WHERE enabled=1")->fetchAll();
+  $out = [];
+  foreach ($rows as $r) $out[(string)$r['field_key']] = true;
+  return $out;
+}
+
+function filter_payload(array $payload, array $enabled, array $map): array {
+  $out = [];
+  foreach ($map as $field_key => $payload_key) {
+    if (!empty($enabled[$field_key])) {
+      $out[$payload_key] = $payload[$payload_key] ?? null;
+    }
+  }
+  return $out;
+}
+
+function log_payload(PDO $pdo, string $source, array $payload, int $interval_sec, string $last_key): void {
+  $now = time();
+  $last = (int)setting_get($last_key, '0');
+  if ($interval_sec > 0 && ($now - $last) < $interval_sec) return;
+
+  $stmt = $pdo->prepare("INSERT INTO telemetry_log (source, payload) VALUES (:s, :p)");
+  $stmt->execute([
+    ':s' => $source,
+    ':p' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+  ]);
+  setting_set($last_key, (string)$now);
+}
+
+function fetch_openweather(PDO $pdo): ?array {
+  $enabled = setting_get('weather_enabled', '0') === '1';
+  $key = trim((string)setting_get('weather_api_key', ''));
+  if (!$enabled || $key === '') return null;
+
+  $interval = (int)setting_get('weather_interval_sec', '300');
+  $now = time();
+  $last = (int)setting_get('weather_last_fetch_ts', '0');
+  if ($interval > 0 && ($now - $last) < $interval) {
+    // return cached
+    $row = $pdo->query("SELECT payload FROM weather_cache ORDER BY id DESC LIMIT 1")->fetch();
+    return $row ? json_decode((string)$row['payload'], true) : null;
+  }
+
+  $units = (string)setting_get('weather_units', 'metric');
+  $lang  = (string)setting_get('weather_lang', 'ru');
+  $lat   = trim((string)setting_get('weather_lat', '59.9342'));
+  $lon   = trim((string)setting_get('weather_lon', '30.3351'));
+  $city  = trim((string)setting_get('weather_city', ''));
+
+  if ($city !== '') {
+    $url = "https://api.openweathermap.org/data/2.5/weather?q=" . rawurlencode($city) .
+      "&appid=" . rawurlencode($key) . "&units=" . rawurlencode($units) . "&lang=" . rawurlencode($lang);
+  } else {
+    $url = "https://api.openweathermap.org/data/2.5/weather?lat=" . rawurlencode($lat) . "&lon=" . rawurlencode($lon) .
+      "&appid=" . rawurlencode($key) . "&units=" . rawurlencode($units) . "&lang=" . rawurlencode($lang);
+  }
+
+  $ctx = stream_context_create(['http' => ['timeout' => 6]]);
+  $json = @file_get_contents($url, false, $ctx);
+  if (!$json) return null;
+  $data = json_decode($json, true);
+  if (!is_array($data)) return null;
+
+  $payload = [
+    'ts' => $data['dt'] ?? time(),
+    'temp' => $data['main']['temp'] ?? null,
+    'humidity' => $data['main']['humidity'] ?? null,
+    'pressure' => $data['main']['pressure'] ?? null,
+    'wind_speed' => $data['wind']['speed'] ?? null,
+    'wind_gust' => $data['wind']['gust'] ?? null,
+    'wind_deg' => $data['wind']['deg'] ?? null,
+    'visibility' => $data['visibility'] ?? null,
+    'clouds' => $data['clouds']['all'] ?? null,
+    'precip' => $data['rain']['1h'] ?? ($data['snow']['1h'] ?? null),
+    'source' => 'openweathermap',
+    'units' => $units,
+  ];
+
+  $pdo->prepare("INSERT INTO weather_cache (payload) VALUES (:p)")
+      ->execute([':p' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]);
+  setting_set('weather_last_fetch_ts', (string)$now);
+  return $payload;
+}
+
 try {
   // Берём последнюю запись
   $stmt = $pdo->query("
@@ -20,7 +105,7 @@ try {
   $last = $stmt ? $stmt->fetch(PDO::FETCH_ASSOC) : null;
 
   if (!$last) {
-    echo json_encode([
+    $response = [
       'ok' => true,
       'connection_status' => 'НЕТ ДАННЫХ',
       'state_class' => 'bad',
@@ -28,10 +113,13 @@ try {
       'age_sec' => null,
       'co' => 0,
       'ch4' => 0,
+      'lpg' => 0,
+      'h2' => 0,
       'uav_id' => null,
       'device' => null,
       'ts' => null,
-    ], JSON_UNESCAPED_UNICODE);
+    ];
+    echo json_encode($response, JSON_UNESCAPED_UNICODE);
     exit;
   }
 
@@ -64,7 +152,7 @@ try {
     $stateClass = 'bad';
   }
 
-  echo json_encode([
+  $response = [
     'ok' => true,
 
     // статус связи с дроном (по свежести последней телеметрии)
@@ -81,7 +169,72 @@ try {
     'uav_id' => $last['uav_id'] ?? null,
     'device' => $last['device'] ?? null,
     'ts' => $last['ts'] ?? null,
-  ], JSON_UNESCAPED_UNICODE);
+  ];
+
+  // ---- Logging (telemetry + weather) ----
+  $log_enabled = setting_get('telemetry_log_enabled', '1') === '1';
+  if ($log_enabled) {
+    $interval = (int)setting_get('telemetry_log_interval_sec', '30');
+    $enabled = get_enabled_fields($pdo);
+
+    $payload = [
+      'connection_status' => $connectionStatus,
+      'last_seen' => $lastSeenStr,
+      'age_sec' => $ageSec,
+      'uav_id' => $last['uav_id'] ?? null,
+      'device' => $last['device'] ?? null,
+      'ts' => $last['ts'] ?? null,
+      'co' => $co,
+      'ch4' => $ch4,
+      'lpg' => $lpg,
+      'h2' => $h2,
+    ];
+
+    $map = [
+      'link_status' => 'connection_status',
+      'last_seen' => 'last_seen',
+      'age_sec' => 'age_sec',
+      'uav_id' => 'uav_id',
+      'device' => 'device',
+      'ts' => 'ts',
+      'gas_co' => 'co',
+      'gas_ch4' => 'ch4',
+      'gas_lpg' => 'lpg',
+      'gas_h2' => 'h2',
+    ];
+
+    $filtered = filter_payload($payload, $enabled, $map);
+    log_payload($pdo, 'ibas', $filtered, $interval, 'telemetry_last_log_ts');
+
+    // weather
+    $weather = fetch_openweather($pdo);
+    if (is_array($weather)) {
+      $wmap = [
+        'weather_temp' => 'temp',
+        'weather_humidity' => 'humidity',
+        'weather_pressure' => 'pressure',
+        'weather_wind_speed' => 'wind_speed',
+        'weather_wind_gust' => 'wind_gust',
+        'weather_wind_dir' => 'wind_deg',
+        'weather_visibility' => 'visibility',
+        'weather_clouds' => 'clouds',
+        'weather_precip' => 'precip',
+      ];
+      $wfiltered = filter_payload($weather, $enabled, $wmap);
+      log_payload($pdo, 'weather', $wfiltered, (int)setting_get('weather_interval_sec', '300'), 'weather_last_log_ts');
+    }
+  }
+
+  // attach weather (if available) to response for UI
+  if (isset($weather) && is_array($weather)) {
+    $response['weather'] = $weather;
+    $response['weather_ok'] = true;
+  } else {
+    $response['weather'] = null;
+    $response['weather_ok'] = false;
+  }
+
+  echo json_encode($response, JSON_UNESCAPED_UNICODE);
 
 } catch (Throwable $e) {
   http_response_code(500);
