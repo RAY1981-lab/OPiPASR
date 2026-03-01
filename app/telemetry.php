@@ -75,19 +75,39 @@ $telemetry_live = ($stateClass === 'ok');
     <div class="feature-title">Погода</div>
     <div class="kv-grid kv-grid--weather" data-live-tile="weather" style="margin-top:12px">
       <div class="kv" data-live-source="weather">
-        <div class="kv-k">Погода (Росгидрометцентр)</div>
-        <div class="kv-v" id="wx_main">T 1,6 °C · RH 78% · P 1012 гПа</div>
-        <div class="kv-hint">Ветер 5,2 м/с (СЗ, 315°) · осадки 0,0 мм/ч</div>
+        <div class="kv-k">Температура</div>
+        <div class="kv-v" id="wx_temp">—</div>
+        <div class="kv-hint">Источник: OpenWeatherMap</div>
       </div>
       <div class="kv" data-live-source="weather">
-        <div class="kv-k">Ветер на высоте (оценка)</div>
-        <div class="kv-v" id="wx_wind">6,4 м/с · порывы до 9,0 м/с</div>
-        <div class="kv-hint">Сдвиг ветра: +0,8 м/с на 50 м</div>
+        <div class="kv-k">Влажность</div>
+        <div class="kv-v" id="wx_humidity">—</div>
+        <div class="kv-hint">Источник: OpenWeatherMap</div>
       </div>
       <div class="kv" data-live-source="weather">
-        <div class="kv-k">Видимость / облачность</div>
-        <div class="kv-v" id="wx_vis">1 800 м · облачность 6/10</div>
-        <div class="kv-hint">Источник: РГМЦ (будет подключено)</div>
+        <div class="kv-k">Давление</div>
+        <div class="kv-v" id="wx_pressure">—</div>
+        <div class="kv-hint">Источник: OpenWeatherMap</div>
+      </div>
+      <div class="kv" data-live-source="weather">
+        <div class="kv-k">Ветер и направление</div>
+        <div class="kv-v" id="wx_wind">—</div>
+        <div class="kv-hint">Скорость/порывы/азимут</div>
+      </div>
+      <div class="kv" data-live-source="weather">
+        <div class="kv-k">Видимость</div>
+        <div class="kv-v" id="wx_visibility">—</div>
+        <div class="kv-hint">Источник: OpenWeatherMap</div>
+      </div>
+      <div class="kv" data-live-source="weather">
+        <div class="kv-k">Облачность</div>
+        <div class="kv-v" id="wx_clouds">—</div>
+        <div class="kv-hint">Источник: OpenWeatherMap</div>
+      </div>
+      <div class="kv" data-live-source="weather">
+        <div class="kv-k">Осадки</div>
+        <div class="kv-v" id="wx_precip">—</div>
+        <div class="kv-hint">За последний час</div>
       </div>
     </div>
   </div>
@@ -224,6 +244,13 @@ async function fetchData() {
     setLive('telemetry', live);
 
     const weatherTile = document.querySelector('[data-live-tile="weather"]');
+    const weatherErrorText = (code) => {
+      if (code === 'missing_api_key' || code === 'api_error') return 'Введите корректный API';
+      if (code === 'fetch_failed' || code === 'bad_json') return 'Нет связи с сервером';
+      if (code === 'weather_disabled') return 'Погода выключена';
+      return 'Нет данных';
+    };
+
     if (data.weather_ok && data.weather) {
       const w = data.weather;
       const temp = (w.temp ?? '—');
@@ -236,18 +263,26 @@ async function fetchData() {
       const cl = (w.clouds ?? '—');
       const pr = (w.precip ?? '—');
 
-      document.getElementById('wx_main').innerText = `T ${temp} °C · RH ${rh}% · P ${p} гПа`;
+      document.getElementById('wx_temp').innerText = `${temp} °C`;
+      document.getElementById('wx_humidity').innerText = `${rh} %`;
+      document.getElementById('wx_pressure').innerText = `${p} гПа`;
       document.getElementById('wx_wind').innerText = `${ws} м/с · порывы ${wg} м/с · ${wd}°`;
-      document.getElementById('wx_vis').innerText = `${vis} м · облачность ${cl}% · осадки ${pr} мм/ч`;
+      document.getElementById('wx_visibility').innerText = `${vis} м`;
+      document.getElementById('wx_clouds').innerText = `${cl} %`;
+      document.getElementById('wx_precip').innerText = `${pr} мм/ч`;
       setLive('weather', true);
       if (weatherTile) weatherTile.classList.add('is-live');
     } else {
       setLive('weather', false);
       if (weatherTile) weatherTile.classList.remove('is-live');
-      const hint = document.getElementById('wx_vis');
-      if (hint && data.weather_error) {
-        hint.innerText = `Источник: OpenWeatherMap (${data.weather_error})`;
-      }
+      const err = weatherErrorText(data.weather_error);
+      document.getElementById('wx_temp').innerText = err;
+      document.getElementById('wx_humidity').innerText = err;
+      document.getElementById('wx_pressure').innerText = err;
+      document.getElementById('wx_wind').innerText = err;
+      document.getElementById('wx_visibility').innerText = err;
+      document.getElementById('wx_clouds').innerText = err;
+      document.getElementById('wx_precip').innerText = err;
     }
   } catch (e) {
     console.error('Ошибка получения данных:', e);
