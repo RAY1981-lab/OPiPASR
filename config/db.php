@@ -106,7 +106,8 @@ function db_seed_default_admin(PDO $pdo): void {
             VALUES (:u, :p, 'ADMIN', 'ACTIVE', NOW(), NULL)
         ")->execute([':u' => $username, ':p' => $hash]);
     } catch (Throwable $e) {
-        // Ignore seeding errors (e.g. race / username already exists).
+        // Don't fail the whole app, but log so it's visible.
+        error_log('Default admin seed failed: ' . $e->getMessage());
     }
 }
 

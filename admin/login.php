@@ -62,6 +62,18 @@ if ($f) {
     $cls = $f['type'] === 'ok' ? 'alert ok' : 'alert bad';
     echo '<div class="' . $cls . '"><strong>' . h($f['msg']) . '</strong></div>';
 }
+
+// Диагностика: есть ли админ в БД
+try {
+    $pdo = db();
+    $has_admin = (bool)$pdo->query("SELECT id FROM users WHERE role='ADMIN' LIMIT 1")->fetch();
+    if (!$has_admin) {
+        echo '<div class="alert bad"><strong>Администратор не найден в БД.</strong> ' .
+             'Создайте его через <code style="color:rgba(255,255,255,.9)">/admin/bootstrap_admin.php?key=...</code> (см. ключ в <code style="color:rgba(255,255,255,.9)">config/ingest_secret.php</code>).</div>';
+    }
+} catch (Throwable $e) {
+    // ignore
+}
 ?>
 
 <div class="panel">

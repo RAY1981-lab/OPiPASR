@@ -24,6 +24,7 @@ $public_exact = [
   '/contacts/',
   '/logout/',
   '/admin/login.php',
+  '/admin/bootstrap_admin.php',
 ];
 $public_prefixes = [
   '/assets/',
