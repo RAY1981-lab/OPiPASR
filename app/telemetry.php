@@ -42,6 +42,7 @@ $h2_concentration   = round(calculate_gas_concentration($mq2adc, 'H2'), 4);
 $connection_status = 'НЕТ ДАННЫХ';
 $stateClass = 'bad';
 $last_seen = $last['created_at'] ?? null;
+$ageSec = null;
 
 if ($last_seen) {
   $ageSec = time() - strtotime((string)$last_seen);
@@ -53,113 +54,149 @@ if ($last_seen) {
     $stateClass = 'bad';
   }
 }
+
+$telemetry_live = ($stateClass === 'ok');
 ?>
 
 <h1 style="margin:0 0 12px;">Телеметрия ИБАС</h1>
 
-<div class="note" style="margin-bottom:14px">
-  <strong>Черновик структуры.</strong> Здесь будут собраны все параметры ИБАС: газоанализ, GNSS/ИНС, АКБ, связь, камера/тепловизор,
-  погодные данные, статус миссии и журнал событий.
-</div>
-
-<div class="panel-card" style="margin-bottom:16px;">
-  <div class="panel-header">
-    <span class="panel-badge">ИБАС</span>
-    <span class="panel-title">Состояние связи и газовая среда</span>
-  </div>
-
-  <div class="panel-grid">
-    <div class="tile">
-      <div class="tile-label">Связь с дроном</div>
-      <div class="tile-value" id="connection_status" data-class="<?= h($stateClass) ?>"><?= h($connection_status) ?></div>
-      <div class="tile-note">
-        Последний пакет: <span id="last_seen"><?= h((string)($last_seen ?? '—')) ?></span>
-        (<span id="age_sec"><?= $last_seen ? (int)(time() - strtotime((string)$last_seen)) : '—' ?></span> сек назад)
-      </div>
-    </div>
-
-    <div class="tile">
-      <div class="tile-label">UAV</div>
-      <div class="tile-value" id="uav_id"><?= h($last['uav_id'] ?? '—') ?></div>
-      <div class="tile-note">источник данных</div>
-    </div>
-
-    <div class="tile">
-      <div class="tile-label">Концентрация CO</div>
-      <div class="tile-value" id="co_concentration"><?= h((string)$co_concentration) ?>%</div>
-      <div class="tile-note">угарный газ</div>
-    </div>
-
-    <div class="tile">
-      <div class="tile-label">Концентрация CH₄</div>
-      <div class="tile-value" id="ch4_concentration"><?= h((string)$ch4_concentration) ?>%</div>
-      <div class="tile-note">метан</div>
-    </div>
-
-    <div class="tile">
-      <div class="tile-label">Концентрация LPG</div>
-      <div class="tile-value" id="lpg_concentration"><?= h((string)$lpg_concentration) ?>%</div>
-      <div class="tile-note">пропан / бутан</div>
-    </div>
-
-    <div class="tile">
-      <div class="tile-label">Концентрация H₂</div>
-      <div class="tile-value" id="h2_concentration"><?= h((string)$h2_concentration) ?>%</div>
-      <div class="tile-note">водород</div>
-    </div>
-
-    <div class="tile">
-      <div class="tile-label">Устройство</div>
-      <div class="tile-value" id="device"><?= h($last['device'] ?? '—') ?></div>
-      <div class="tile-note">метка отправителя</div>
-    </div>
-
-    <div class="tile">
-      <div class="tile-label">Время (ts)</div>
-      <div class="tile-value" id="ts"><?= h((string)($last['ts'] ?? '—')) ?></div>
-      <div class="tile-note">unix timestamp</div>
-    </div>
-  </div>
-
-  <div class="panel-footer">
-    <span class="panel-footnote">Связь определяется по свежести последней телеметрии в sensor_readings.</span>
-  </div>
+<div class="map-embed" style="margin: 0 auto 16px;max-width: 1120px;">
+  <iframe
+    src="https://yandex.ru/map-widget/v1/?ll=30.3351%2C59.9342&z=12&pt=30.3351,59.9342,pm2rdm"
+    allowfullscreen="true"
+    loading="lazy"
+    referrerpolicy="no-referrer-when-downgrade"
+    title="Карта (Яндекс)"
+  ></iframe>
 </div>
 
 <div class="features">
   <div class="feature">
-    <div class="feature-title">Навигация и позиционирование (план)</div>
-    <ul class="feature-list">
-      <li>координаты: широта/долгота (WGS‑84), точность, HDOP;</li>
-      <li>высота: AGL/AMSL, вертикальная скорость;</li>
-      <li>курс/скорость, режим GNSS, число спутников;</li>
-      <li>ИНС/компас: статус, расхождение, флаги деградации.</li>
-    </ul>
+    <div class="feature-title">Погода</div>
+    <div class="kv-grid" style="margin-top:12px">
+      <div class="kv" data-live-source="weather">
+        <div class="kv-k">Погода (Росгидрометцентр)</div>
+        <div class="kv-v" id="wx_main">T 1,6 °C · RH 78% · P 1012 гПа</div>
+        <div class="kv-hint">Ветер 5,2 м/с (СЗ, 315°) · осадки 0,0 мм/ч</div>
+      </div>
+      <div class="kv" data-live-source="weather">
+        <div class="kv-k">Ветер на высоте (оценка)</div>
+        <div class="kv-v" id="wx_wind">6,4 м/с · порывы до 9,0 м/с</div>
+        <div class="kv-hint">Сдвиг ветра: +0,8 м/с на 50 м</div>
+      </div>
+      <div class="kv" data-live-source="weather">
+        <div class="kv-k">Видимость / облачность</div>
+        <div class="kv-v" id="wx_vis">1 800 м · облачность 6/10</div>
+        <div class="kv-hint">Источник: РГМЦ (будет подключено)</div>
+      </div>
+    </div>
   </div>
+
   <div class="feature">
-    <div class="feature-title">Связь и канал передачи (план)</div>
-    <ul class="feature-list">
-      <li>uplink/downlink (Мбит/с), SNR, RTT, потери;</li>
-      <li>режим деградации и приоритет потоков;</li>
-      <li>оценка качества канала и прогноз устойчивости.</li>
-    </ul>
+    <div class="feature-title">Сенсоры (ИБАС)</div>
+    <div class="kv-grid" style="margin-top:12px">
+      <div class="kv<?= $telemetry_live ? ' is-live' : '' ?>" data-live-source="telemetry">
+        <div class="kv-k">Связь с дроном</div>
+        <div class="kv-v" id="connection_status"><?= h($connection_status) ?></div>
+        <div class="kv-hint">
+          Последний пакет: <span id="last_seen"><?= h((string)($last_seen ?? '—')) ?></span>
+          (<span id="age_sec"><?= $ageSec !== null ? (int)$ageSec : '—' ?></span> сек назад)
+        </div>
+      </div>
+      <div class="kv<?= $telemetry_live ? ' is-live' : '' ?>" data-live-source="telemetry">
+        <div class="kv-k">CO (MQ‑2)</div>
+        <div class="kv-v" id="co_concentration"><?= h((string)$co_concentration) ?>%</div>
+        <div class="kv-hint">Концентрация в процентах (1% = 10 000 ppm)</div>
+      </div>
+      <div class="kv<?= $telemetry_live ? ' is-live' : '' ?>" data-live-source="telemetry">
+        <div class="kv-k">CH₄ (MQ‑2)</div>
+        <div class="kv-v" id="ch4_concentration"><?= h((string)$ch4_concentration) ?>%</div>
+        <div class="kv-hint">Концентрация в процентах (1% = 10 000 ppm)</div>
+      </div>
+
+      <div class="kv<?= $telemetry_live ? ' is-live' : '' ?>" data-live-source="telemetry">
+        <div class="kv-k">LPG (MQ‑2)</div>
+        <div class="kv-v" id="lpg_concentration"><?= h((string)$lpg_concentration) ?>%</div>
+        <div class="kv-hint">Пропан / бутан</div>
+      </div>
+      <div class="kv<?= $telemetry_live ? ' is-live' : '' ?>" data-live-source="telemetry">
+        <div class="kv-k">H₂ (MQ‑2)</div>
+        <div class="kv-v" id="h2_concentration"><?= h((string)$h2_concentration) ?>%</div>
+        <div class="kv-hint">Водород</div>
+      </div>
+      <div class="kv<?= $telemetry_live ? ' is-live' : '' ?>" data-live-source="telemetry">
+        <div class="kv-k">Температура / дым</div>
+        <div class="kv-v" id="smoke_temp">Tвозд 2,3 °C · видимость 1 800 м</div>
+        <div class="kv-hint">Плотность дыма (оценка): 0,32 усл. ед.</div>
+      </div>
+    </div>
   </div>
+
   <div class="feature">
-    <div class="feature-title">Погода (план)</div>
-    <ul class="feature-list">
-      <li>температура, влажность, давление (гПа), ветер (м/с и направление), порывы;</li>
-      <li>осадки (мм/ч), видимость (м), облачность;</li>
-      <li>источник: Росгидрометцентр / локальный датчик.</li>
-    </ul>
+    <div class="feature-title">ИБАС (платформа)</div>
+    <div class="kv-grid" style="margin-top:12px">
+      <div class="kv<?= $telemetry_live ? ' is-live' : '' ?>" data-live-source="telemetry">
+        <div class="kv-k">Время пакета</div>
+        <div class="kv-v" id="pkt_time"><?= h((string)($last['ts'] ?? '—')) ?></div>
+        <div class="kv-hint">unix timestamp (будет заменено на МСК/UTC)</div>
+      </div>
+      <div class="kv<?= $telemetry_live ? ' is-live' : '' ?>" data-live-source="telemetry">
+        <div class="kv-k">Координаты ИБАС</div>
+        <div class="kv-v" id="gps_pos">59,9342° N; 30,3351° E</div>
+        <div class="kv-hint">Точность: ±1,8 м (HDOP 0,9)</div>
+      </div>
+      <div class="kv<?= $telemetry_live ? ' is-live' : '' ?>" data-live-source="telemetry">
+        <div class="kv-k">Высота / скорость / курс</div>
+        <div class="kv-v" id="flight_vec">55 м AGL · 4,0 м/с · 124°</div>
+        <div class="kv-hint">Vground; вертикальная скорость: +0,2 м/с</div>
+      </div>
+
+      <div class="kv<?= $telemetry_live ? ' is-live' : '' ?>" data-live-source="telemetry">
+        <div class="kv-k">АКБ / питание</div>
+        <div class="kv-v" id="power_pack">76% · 22,8 В · 14,2 А</div>
+        <div class="kv-hint">Оценка до возврата: ~18 мин</div>
+      </div>
+      <div class="kv<?= $telemetry_live ? ' is-live' : '' ?>" data-live-source="telemetry">
+        <div class="kv-k">Навигация</div>
+        <div class="kv-v" id="nav_state">GNSS: FIX · спутники: 17</div>
+        <div class="kv-hint">Компас: 1,2°; ИНС: OK</div>
+      </div>
+      <div class="kv<?= $telemetry_live ? ' is-live' : '' ?>" data-live-source="telemetry">
+        <div class="kv-k">Связь (uplink/downlink)</div>
+        <div class="kv-v" id="link_rate">12,4 / 18,6 Мбит/с</div>
+        <div class="kv-hint">SNR 18 дБ; RTT 180 мс; потери 0,8%</div>
+      </div>
+
+      <div class="kv<?= $telemetry_live ? ' is-live' : '' ?>" data-live-source="telemetry">
+        <div class="kv-k">Двигатели (RPM)</div>
+        <div class="kv-v" id="motors_rpm">M1 6 120 · M2 6 080 · M3 6 140 · M4 6 095</div>
+        <div class="kv-hint">Среднее: 6 109 rpm</div>
+      </div>
+      <div class="kv<?= $telemetry_live ? ' is-live' : '' ?>" data-live-source="telemetry">
+        <div class="kv-k">Температура корпуса</div>
+        <div class="kv-v" id="body_temp">+34 °C</div>
+        <div class="kv-hint">Внутри: +29 °C · контроллер: +41 °C</div>
+      </div>
+      <div class="kv<?= $telemetry_live ? ' is-live' : '' ?>" data-live-source="telemetry">
+        <div class="kv-k">Устройство / миссия</div>
+        <div class="kv-v" id="device"><?= h($last['device'] ?? '—') ?></div>
+        <div class="kv-hint">UAV: <span id="uav_id"><?= h($last['uav_id'] ?? '—') ?></span> · статус миссии: ПАТРУЛЬ</div>
+      </div>
+    </div>
   </div>
+</div>
+
+<div class="telemetry-video">
+  <div class="iv-embed" style="margin:0 auto;padding:0;border:0;width:482px;"><div class="iv-v" style="display:block;margin:0;padding:1px;border:0;background:#000;"><iframe class="iv-i" style="display:block;margin:0;padding:0;border:0;" src="https://open.ivideon.com/embed/v3/100-ZN0HiLHuEOvUnYwp6unIHI:0/" width="480" height="270" frameborder="0" allow="autoplay; fullscreen; clipboard-write; picture-in-picture"></iframe></div><div class="iv-b" style="display:block;margin:0;padding:0;border:0;"><div style="float:right;text-align:right;padding:0 0 10px;line-height:10px;"><a class="iv-a" style="font:10px Verdana,sans-serif;color:inherit;opacity:.6;" href="https://go.ivideon.com/site" target="_blank">Powered by Ivideon</a></div><div style="clear:both;height:0;overflow:hidden;">&nbsp;</div><script src="https://open.ivideon.com/embed/v3/embedded.js"></script></div></div>
 </div>
 
 <?php require_once __DIR__ . '/../config/footer.php'; ?>
 
 <script>
-function setStatusClass(el, stateClass) {
-  el.classList.remove('ok', 'bad');
-  if (stateClass) el.classList.add(stateClass);
+function setLive(source, live) {
+  document.querySelectorAll(`[data-live-source="${source}"]`).forEach((el) => {
+    el.classList.toggle('is-live', !!live);
+  });
 }
 
 async function fetchData() {
@@ -175,14 +212,16 @@ async function fetchData() {
 
     if (data.uav_id !== undefined) document.getElementById('uav_id').innerText = data.uav_id ?? '—';
     if (data.device !== undefined) document.getElementById('device').innerText = data.device ?? '—';
-    if (data.ts !== undefined) document.getElementById('ts').innerText = data.ts ?? '—';
+    if (data.ts !== undefined) document.getElementById('pkt_time').innerText = data.ts ?? '—';
 
     const st = document.getElementById('connection_status');
     if (data.connection_status !== undefined) st.innerText = data.connection_status ?? '—';
-    if (data.state_class !== undefined) setStatusClass(st, data.state_class);
 
     if (data.last_seen !== undefined) document.getElementById('last_seen').innerText = data.last_seen ?? '—';
     if (data.age_sec !== undefined) document.getElementById('age_sec').innerText = (data.age_sec ?? '—');
+
+    const live = (data.state_class ?? '') === 'ok';
+    setLive('telemetry', live);
   } catch (e) {
     console.error('Ошибка получения данных:', e);
   }
@@ -191,4 +230,3 @@ async function fetchData() {
 setInterval(fetchData, 10000);
 fetchData();
 </script>
-

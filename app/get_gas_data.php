@@ -40,6 +40,8 @@ try {
   // Газовые расчёты (как у вас в helpers.php)
   $co = round(calculate_gas_concentration($mq2_adc, 'CO'), 2);
   $ch4 = round(calculate_gas_concentration($mq2_adc, 'CH4'), 2);
+  $lpg = round(calculate_gas_concentration($mq2_adc, 'LPG'), 2);
+  $h2  = round(calculate_gas_concentration($mq2_adc, 'H2'), 2);
 
   // ---- КРИТЕРИЙ "ДРОН НА СВЯЗИ" ----
   // Используем created_at как время поступления последнего пакета на сервер.
@@ -74,6 +76,8 @@ try {
     // данные
     'co' => $co,
     'ch4' => $ch4,
+    'lpg' => $lpg,
+    'h2' => $h2,
     'uav_id' => $last['uav_id'] ?? null,
     'device' => $last['device'] ?? null,
     'ts' => $last['ts'] ?? null,
