@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Этот файл НЕ должен быть доступен из web (он в /config/).
  */
 
-define('OPIPASR_INGEST_KEY', 'HpQpk3A6bbeUYRrOawC04FlE5eXNq+PsEtPmg9L/1ywWZsROE64bjU/JXq1vsd7v'); // уже сгенерированный
+define('OPIPASR_INGEST_KEY', 'GgbliWcdCWpqDCQZ7nt6a1N3RucP+RjYQY4PHfrDBg+V9bxgREKQH71YdcfpMCdhcKi70q/ofwf0ZPPv9Qg+RA=='); // rotated: 2026-03-01
 
 // DB параметры (как ждёт config/db.php)
 define('DB_HOST', 'localhost');
