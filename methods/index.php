@@ -12,15 +12,9 @@ require_once __DIR__ . '/../config/header.php';
   <h1>Методики и модели</h1>
 </section>
 
-<section class="section" id="calculators">
-  <h2>Перечень калькуляторов</h2>
-  <p class="section-lead">
-    Список сгруппирован по типовым задачам РТП/ОШ, РЛЧС, ЦУКС/ЕДДС и операторов БАС.
-    Нумерация формул и рисунков приведена как в тексте диссертации.
-  </p>
-
-  <div class="feature" style="margin-top:16px">
-    <div class="feature-title">Параметры, полученные от ИБАС (пример)</div>
+<section class="section">
+  <div class="feature">
+    <div class="feature-title">Параметры, полученные от ИБАС</div>
     <div class="section-lead" style="margin:8px 0 0">
       Демонстрационные значения в системе СИ. Реальные данные будут подставлены из телеметрии/датчиков и погоды (Росгидрометцентр) позже.
     </div>
@@ -75,7 +69,7 @@ require_once __DIR__ . '/../config/header.php';
       </div>
 
       <div class="kv">
-        <div class="kv-k">Погода (Росгидрометцентр, пример)</div>
+        <div class="kv-k">Погода (Росгидрометцентр)</div>
         <div class="kv-v">T 1,6 °C · RH 78% · P 1012 гПа</div>
         <div class="kv-hint">Ветер 5,2 м/с (СЗ, 315°) · осадки 0,0 мм/ч</div>
       </div>
@@ -91,6 +85,14 @@ require_once __DIR__ . '/../config/header.php';
       </div>
     </div>
   </div>
+</section>
+
+<section class="section" id="calculators">
+  <h2>Перечень калькуляторов</h2>
+  <p class="section-lead" style="margin-top:12px">
+    Список сгруппирован по типовым задачам РТП/ОШ, РЛЧС, ЦУКС/ЕДДС и операторов БАС.
+    Нумерация формул и рисунков приведена как в тексте диссертации.
+  </p>
 
   <div class="features">
     <div class="feature">
