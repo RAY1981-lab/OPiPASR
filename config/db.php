@@ -3,6 +3,113 @@ declare(strict_types=1);
 
 $pdo = null;
 
+function db_has_table(PDO $pdo, string $table): bool {
+    $stmt = $pdo->prepare('
+        SELECT COUNT(*) AS c
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE() AND table_name = :t
+    ');
+    $stmt->execute([':t' => $table]);
+    return (int)($stmt->fetchColumn() ?: 0) > 0;
+}
+
+function db_has_column(PDO $pdo, string $table, string $column): bool {
+    $stmt = $pdo->prepare('
+        SELECT COUNT(*) AS c
+        FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = :t AND column_name = :c
+    ');
+    $stmt->execute([':t' => $table, ':c' => $column]);
+    return (int)($stmt->fetchColumn() ?: 0) > 0;
+}
+
+function db_ensure_schema(PDO $pdo): void {
+    static $done = false;
+    if ($done) return;
+    $done = true;
+
+    if (!db_has_table($pdo, 'users')) {
+        $pdo->exec("
+            CREATE TABLE users (
+              id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+              username VARCHAR(32) NOT NULL,
+              pass_hash VARCHAR(255) NOT NULL,
+              role VARCHAR(16) NOT NULL DEFAULT 'GUEST',
+              status VARCHAR(16) NOT NULL DEFAULT 'PENDING',
+              created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              approved_at TIMESTAMP NULL DEFAULT NULL,
+              approved_by BIGINT UNSIGNED NULL DEFAULT NULL,
+              last_login_at TIMESTAMP NULL DEFAULT NULL,
+              PRIMARY KEY (id),
+              UNIQUE KEY uq_users_username (username),
+              KEY idx_users_role (role),
+              KEY idx_users_status (status)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    } else {
+        // Ensure modern columns exist and relax enums to VARCHAR if needed.
+        if (!db_has_column($pdo, 'users', 'approved_by')) {
+            $pdo->exec("ALTER TABLE users ADD COLUMN approved_by BIGINT UNSIGNED NULL DEFAULT NULL AFTER approved_at");
+        }
+        try { $pdo->exec("ALTER TABLE users MODIFY role VARCHAR(16) NOT NULL"); } catch (Throwable $e) {}
+        try { $pdo->exec("ALTER TABLE users MODIFY status VARCHAR(16) NOT NULL"); } catch (Throwable $e) {}
+    }
+
+    if (!db_has_table($pdo, 'approvals_log')) {
+        $pdo->exec("
+            CREATE TABLE approvals_log (
+              id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+              admin_user_id BIGINT UNSIGNED NOT NULL,
+              target_user_id BIGINT UNSIGNED NOT NULL,
+              action VARCHAR(32) NOT NULL,
+              new_role VARCHAR(16) NULL,
+              created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY (id),
+              KEY idx_approvals_admin (admin_user_id),
+              KEY idx_approvals_target (target_user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    }
+
+    if (!db_has_table($pdo, 'user_permissions')) {
+        $pdo->exec("
+            CREATE TABLE user_permissions (
+              user_id BIGINT UNSIGNED NOT NULL,
+              perm_key VARCHAR(48) NOT NULL,
+              can_view TINYINT(1) NOT NULL DEFAULT 0,
+              can_edit TINYINT(1) NOT NULL DEFAULT 0,
+              updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+              PRIMARY KEY (user_id, perm_key),
+              KEY idx_perm_key (perm_key)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    }
+}
+
+function db_seed_default_admin(PDO $pdo): void {
+    static $done = false;
+    if ($done) return;
+    $done = true;
+
+    // Create a default admin only if no admins exist.
+    $stmt = $pdo->query("SELECT id FROM users WHERE role='ADMIN' LIMIT 1");
+    $admin = $stmt ? $stmt->fetch() : null;
+    if ($admin) return;
+
+    $username = 'Admin';
+    $password = 'Admin-01';
+    $hash = password_hash($password, PASSWORD_DEFAULT);
+
+    try {
+        $pdo->prepare("
+            INSERT INTO users (username, pass_hash, role, status, approved_at, approved_by)
+            VALUES (:u, :p, 'ADMIN', 'ACTIVE', NOW(), NULL)
+        ")->execute([':u' => $username, ':p' => $hash]);
+    } catch (Throwable $e) {
+        // Ignore seeding errors (e.g. race / username already exists).
+    }
+}
+
 function db(): PDO {
     global $pdo;
 
@@ -20,6 +127,8 @@ function db(): PDO {
         $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=$charset", $user, $password);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        db_ensure_schema($pdo);
+        db_seed_default_admin($pdo);
         return $pdo;
     } catch (PDOException $e) {
         error_log('DB connect error: ' . $e->getMessage());

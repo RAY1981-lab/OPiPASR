@@ -57,16 +57,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $target_name = (string)($target['username'] ?? '');
 
   // Нельзя удалять/править админов через эту страницу
-  if ($target_role === 'ADMIN' && ($action === 'delete_user' || $action === 'change_role' || $action === 'disable')) {
+  if ($target_role === 'ADMIN' && ($action === 'delete_user' || $action === 'change_role' || $action === 'disable' || $action === 'reject')) {
     flash_set('bad', 'Нельзя изменять/удалять пользователя с ролью ADMIN.');
     redirect('/admin/approvals.php');
   }
 
   if ($action === 'approve') {
-    $new_role = strtoupper(trim((string)($_POST['role'] ?? 'VIEWER')));
+    $new_role = strtoupper(trim((string)($_POST['role'] ?? 'GUEST')));
 
     // роли для назначения при одобрении (ADMIN запрещён)
-    $allowed_roles = ['VIEWER','OPERATOR','RTP'];
+    $allowed_roles = ['GUEST', 'RTP', 'CUKS'];
     if (!in_array($new_role, $allowed_roles, true)) {
       flash_set('bad', 'Некорректная роль для одобрения.');
       redirect('/admin/approvals.php');
@@ -79,7 +79,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try_log_action($pdo, $admin_id, $target_id, 'APPROVE', $new_role);
 
-    flash_set('ok', 'Заявка одобрена: роль ' . $new_role . '.');
+    flash_set('ok', 'Заявка одобрена: роль ' . role_label($new_role) . '.');
+    redirect('/admin/approvals.php');
+  }
+
+  if ($action === 'reject') {
+    $pdo->prepare("UPDATE users
+                   SET status='REJECTED', approved_at=NOW(), approved_by=:ab
+                   WHERE id=:id AND status='PENDING'")
+        ->execute([':ab'=>$admin_id, ':id'=>$target_id]);
+
+    try_log_action($pdo, $admin_id, $target_id, 'REJECT', null);
+
+    flash_set('ok', 'Заявка отклонена.');
     redirect('/admin/approvals.php');
   }
 
@@ -92,8 +104,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 
   if ($action === 'change_role') {
-    $new_role = strtoupper(trim((string)($_POST['role'] ?? 'VIEWER')));
-    $allowed_roles = ['VIEWER','OPERATOR','RTP']; // ADMIN запрещаем
+    $new_role = strtoupper(trim((string)($_POST['role'] ?? 'GUEST')));
+    $allowed_roles = ['GUEST', 'RTP', 'CUKS']; // ADMIN запрещаем
 
     if (!in_array($new_role, $allowed_roles, true)) {
       flash_set('bad', 'Некорректная роль.');
@@ -105,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try_log_action($pdo, $admin_id, $target_id, 'CHANGE_ROLE', $new_role);
 
-    flash_set('ok', 'Роль пользователя ' . h($target_name) . ' изменена на ' . $new_role . '.');
+    flash_set('ok', 'Роль пользователя ' . h($target_name) . ' изменена на ' . role_label($new_role) . '.');
     redirect('/admin/approvals.php');
   }
 
@@ -118,6 +130,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       try {
         $pdo->prepare("DELETE FROM approvals_log WHERE admin_user_id=:id OR target_user_id=:id")
             ->execute([':id'=>$target_id]);
+      } catch (Throwable $e) {
+        // игнорируем
+      }
+
+      try {
+        $pdo->prepare("DELETE FROM user_permissions WHERE user_id=:id")->execute([':id' => $target_id]);
       } catch (Throwable $e) {
         // игнорируем
       }
@@ -189,7 +207,7 @@ $my_id = (int)($me['id'] ?? 0);
     <table class="table">
       <thead>
         <tr>
-          <th>Username</th>
+          <th>Логин</th>
           <th>Создано</th>
           <th>Роль</th>
           <th>Действия</th>
@@ -205,15 +223,15 @@ $my_id = (int)($me['id'] ?? 0);
                 <?= csrf_field() ?>
                 <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
                 <select class="select" name="role">
-                  <option value="VIEWER">VIEWER</option>
-                  <option value="OPERATOR">OPERATOR</option>
-                  <option value="RTP">RTP</option>
+                  <option value="GUEST">Гость</option>
+                  <option value="RTP">РТП/РЛЧС</option>
+                  <option value="CUKS">ЦУКС</option>
                 </select>
             </td>
             <td>
                 <button class="btn btn-primary" type="submit" name="action" value="approve">Одобрить</button>
-                <button class="btn" type="submit" name="action" value="disable"
-                        onclick="return confirm('Отклонить/отключить пользователя?')">Отклонить</button>
+                <button class="btn" type="submit" name="action" value="reject"
+                        onclick="return confirm('Отклонить заявку на регистрацию?')">Отклонить</button>
                 <button class="btn" type="submit" name="action" value="delete_user"
                         onclick="return confirm('Удалить пользователя НАВСЕГДА? Это необратимо.')">Удалить</button>
               </form>
@@ -232,7 +250,7 @@ $my_id = (int)($me['id'] ?? 0);
     <table class="table">
       <thead>
         <tr>
-          <th>Username</th>
+          <th>Логин</th>
           <th>Роль</th>
           <th>Статус</th>
           <th>Одобрено</th>
@@ -264,11 +282,14 @@ $my_id = (int)($me['id'] ?? 0);
                   <?= csrf_field() ?>
                   <input type="hidden" name="user_id" value="<?= $uid ?>">
                   <select class="select" name="role">
-                    <option value="VIEWER"   <?= $role==='VIEWER'?'selected':'' ?>>VIEWER</option>
-                    <option value="OPERATOR" <?= $role==='OPERATOR'?'selected':'' ?>>OPERATOR</option>
-                    <option value="RTP"      <?= $role==='RTP'?'selected':'' ?>>RTP</option>
+                    <option value="GUEST" <?= $role==='GUEST'?'selected':'' ?>>Гость</option>
+                    <option value="RTP"   <?= $role==='RTP'?'selected':'' ?>>РТП/РЛЧС</option>
+                    <option value="CUKS"  <?= $role==='CUKS'?'selected':'' ?>>ЦУКС</option>
                   </select>
                   <button class="btn btn-primary" type="submit" name="action" value="change_role">Сменить</button>
+                  <a class="btn btn-ghost" href="/admin/permissions.php?user_id=<?= $uid ?>">Права</a>
+                  <button class="btn" type="submit" name="action" value="disable"
+                          onclick="return confirm('Отключить пользователя?')">Отключить</button>
                   <button class="btn" type="submit" name="action" value="delete_user"
                           onclick="return confirm('Удалить пользователя НАВСЕГДА? Это необратимо.')">Удалить</button>
                 </form>

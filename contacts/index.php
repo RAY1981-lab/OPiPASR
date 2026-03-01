@@ -2,6 +2,9 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../config/bootstrap.php';
+if (is_logged_in()) {
+  require_permission('contacts', 'view');
+}
 
 $page_title = 'Контакты — ОПиПАСР';
 require_once __DIR__ . '/../config/header.php';

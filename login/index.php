@@ -15,9 +15,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim((string)($_POST['username'] ?? ''));
     $password = (string)($_POST['password'] ?? '');
 
-    // Проверяем username с использованием регулярных выражений
+    // Проверяем логин с использованием регулярных выражений
     if (!preg_match('/^[A-Za-z0-9_]{3,32}$/', $username)) {
-        flash_set('bad', 'Неверный username или пароль.');
+        flash_set('bad', 'Неверный логин или пароль.');
         redirect('/login/');
     }
 
@@ -31,13 +31,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Если пользователь не найден или пароль неверный
         if (!$user || !password_verify($password, (string)$user['pass_hash'])) {
-            flash_set('bad', 'Неверный username или пароль.');
+            flash_set('bad', 'Неверный логин или пароль.');
             redirect('/login/');
         }
 
         // Проверка статуса пользователя
-        if (strtoupper((string)$user['status']) !== 'ACTIVE') {
-            flash_set('bad', 'Учётная запись не активирована. Статус: ' . strtoupper((string)$user['status']) . '.');
+        $status = strtoupper((string)($user['status'] ?? ''));
+        if ($status !== 'ACTIVE') {
+            if ($status === 'PENDING') {
+                flash_set('bad', 'Заявка на регистрацию ещё не подтверждена администратором.');
+            } elseif ($status === 'REJECTED') {
+                flash_set('bad', 'Заявка на регистрацию отклонена администратором.');
+            } else {
+                flash_set('bad', 'Учётная запись отключена. Статус: ' . $status . '.');
+            }
             redirect('/login/');
         }
 
@@ -47,7 +54,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Логиним пользователя
         login_user($user);
 
-        // Перенаправление в закрытую версию (главная)
+        // Перенаправление: в кабинет (если доступен) или на главную (закрытый контур)
+        if (can_permission('cabinet', 'view')) {
+            redirect('/app/');
+        }
         redirect('/');
     } catch (Throwable $e) {
         flash_set('bad', 'Ошибка сервера при входе.');
@@ -97,7 +107,7 @@ $f = flash_get();
                         required
                         inputmode="latin"
                         pattern="[A-Za-z0-9_]{3,32}"
-                        placeholder="Username"
+                        placeholder="Логин"
                     />
                 </div>
 
@@ -112,7 +122,7 @@ $f = flash_get();
                         name="password"
                         type="password"
                         required
-                        placeholder="Password"
+                        placeholder="Пароль"
                     />
                 </div>
             </div>
@@ -125,7 +135,7 @@ $f = flash_get();
                 <a href="#" onclick="return false;">Забыли пароль?</a>
             </div>
 
-            <button class="btn btn-primary auth-submit" type="submit">LOGIN</button>
+            <button class="btn btn-primary auth-submit" type="submit">ВОЙТИ</button>
         </form>
 
         <div class="auth-alt">Нет аккаунта? <a href="/register/">Регистрация</a></div>

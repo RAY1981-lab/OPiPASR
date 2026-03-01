@@ -15,7 +15,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
   $pass2 = (string)($_POST['password2'] ?? '');
 
   if (!preg_match(USERNAME_REGEX, $username)) {
-    flash_set('bad', 'Некорректный username: используйте латиницу/цифры/подчёркивание, 3–32 символа.');
+    flash_set('bad', 'Некорректный логин: используйте латиницу/цифры/подчёркивание, 3–32 символа.');
     redirect('/register/');
   }
 
@@ -42,17 +42,16 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $stmt->execute([
       ':u' => $username,
       ':p' => $hash,
-      ':r' => 'VIEWER',
-      ':s' => 'ACTIVE',
+      ':r' => 'GUEST',
+      ':s' => 'PENDING',
     ]);
 
-    $id = (int)$pdo->lastInsertId();
-    login_user(['id' => $id, 'username' => $username, 'role' => 'VIEWER', 'status' => 'ACTIVE']);
-    redirect('/');
+    flash_set('ok', 'Заявка на регистрацию отправлена. Дождитесь подтверждения администратора, затем выполните вход.');
+    redirect('/login/');
 
   } catch (PDOException $e) {
     if ((string)$e->getCode() === '23000') {
-      flash_set('bad', 'Этот username уже занят.');
+      flash_set('bad', 'Этот логин уже занят.');
       redirect('/register/');
     }
 
@@ -104,7 +103,7 @@ $f = flash_get();
           <input
             name="username"
             required
-            placeholder="Username"
+            placeholder="Логин"
             inputmode="latin"
             pattern="[A-Za-z0-9_]{3,32}"
           />
@@ -117,7 +116,7 @@ $f = flash_get();
               <path d="M7 10h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8"/>
             </svg>
           </div>
-          <input name="password" type="password" required minlength="<?= (int)MIN_PASSWORD_LEN ?>" placeholder="Password" />
+          <input name="password" type="password" required minlength="<?= (int)MIN_PASSWORD_LEN ?>" placeholder="Пароль" />
         </div>
 
         <div class="auth-input">
@@ -128,11 +127,11 @@ $f = flash_get();
               <path d="M12 14v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
             </svg>
           </div>
-          <input name="password2" type="password" required minlength="<?= (int)MIN_PASSWORD_LEN ?>" placeholder="Repeat password" />
+          <input name="password2" type="password" required minlength="<?= (int)MIN_PASSWORD_LEN ?>" placeholder="Повтор пароля" />
         </div>
       </div>
 
-      <button class="btn btn-primary auth-submit" type="submit">REGISTER</button>
+      <button class="btn btn-primary auth-submit" type="submit">ЗАРЕГИСТРИРОВАТЬСЯ</button>
     </form>
 
     <div class="auth-alt">Уже есть аккаунт? <a href="/login/">Войти</a></div>

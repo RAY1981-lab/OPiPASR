@@ -5,7 +5,7 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
 require_once __DIR__ . '/../config/bootstrap.php';
-require_any_role(['ADMIN', 'OPERATOR', 'RTP']);
+require_permission('cabinet', 'view');
 
 $pdo = db();
 

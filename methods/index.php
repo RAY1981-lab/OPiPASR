@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../config/bootstrap.php';
+require_permission('methods', 'view');
 
 $page_title = 'Методики и модели — ОПиПАСР';
 require_once __DIR__ . '/../config/header.php';

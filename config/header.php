@@ -2,7 +2,8 @@
 require_once __DIR__ . '/bootstrap.php';
 
 $role = $_SESSION['user']['role'] ?? null;
-$can_cabinet = is_logged_in() && in_array($role, ['ADMIN','OPERATOR','RTP'], true);
+$can_cabinet = is_logged_in() && can_permission('cabinet', 'view');
+$can_admin = is_logged_in() && strtoupper((string)$role) === 'ADMIN';
 $header_variant = $header_variant ?? (is_logged_in() ? 'private' : 'public');
 $body_class = trim((string)($body_class ?? ''));
 ?>
@@ -38,15 +39,27 @@ $body_class = trim((string)($body_class ?? ''));
 
     <nav id="site-nav" class="site-nav<?= $header_variant === 'public' ? ' site-nav--public' : '' ?>" role="navigation" aria-label="Основное меню">
       <?php if ($header_variant !== 'public'): ?>
-        <a class="nav-link" href="/normative/">Нормативные документы</a>
-        <a class="nav-link" href="/methods/">Методики и модели</a>
-        <a class="nav-link" href="/about/">О&nbsp;системе</a>
+        <?php if (can_permission('normative', 'view')): ?>
+          <a class="nav-link" href="/normative/">Нормативные документы</a>
+        <?php endif; ?>
+        <?php if (can_permission('methods', 'view')): ?>
+          <a class="nav-link" href="/methods/">Методики и модели</a>
+        <?php endif; ?>
+        <?php if (can_permission('about', 'view')): ?>
+          <a class="nav-link" href="/about/">О&nbsp;системе</a>
+        <?php endif; ?>
       <?php endif; ?>
 
-      <a class="nav-link" href="/contacts/">Контакты</a>
+      <?php if ($header_variant === 'public' || can_permission('contacts', 'view')): ?>
+        <a class="nav-link" href="/contacts/">Контакты</a>
+      <?php endif; ?>
 
       <div class="nav-actions">
         <?php if (is_logged_in()): ?>
+
+          <?php if ($can_admin): ?>
+            <a class="btn btn-ghost" href="/admin/approvals.php">Админ</a>
+          <?php endif; ?>
 
           <?php if ($can_cabinet): ?>
             <a class="btn btn-ghost" href="/app/">Кабинет</a>

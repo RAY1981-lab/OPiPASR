@@ -69,14 +69,16 @@ if ($f) {
     <p class="p">Вход только для роли <strong>ADMIN</strong> и статуса <strong>ACTIVE</strong>.</p>
 
     <div class="alert">
-        <strong>Первый запуск:</strong> создайте администратора через
-        <code style="color:rgba(255,255,255,.9)">/admin/bootstrap_admin.php</code> и удалите этот файл.
+        <strong>Доступ администратора:</strong> по умолчанию создан пользователь
+        <code style="color:rgba(255,255,255,.9)">Admin</code> с паролем
+        <code style="color:rgba(255,255,255,.9)">Admin-01</code>.
+        После входа измените пароль.
     </div>
 
-    <form class="form" method="post" autocomplete="off">
+        <form class="form" method="post" autocomplete="off">
         <?= csrf_field() ?>
         <div class="field">
-            <label class="label" for="username">Admin username</label>
+            <label class="label" for="username">Логин</label>
             <input class="input" id="username" name="username" required inputmode="latin"
                    pattern="[A-Za-z0-9_]{3,32}" />
         </div>

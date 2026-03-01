@@ -15,7 +15,7 @@ require_once __DIR__ . '/config/header.php';
   <section class="landing">
     <div class="container landing-inner">
       <a class="project-logo" href="/login/" aria-label="Войти в систему">
-        <img src="/assets/logo.png" alt="Логотип ОПиПАСР" width="220" height="220" />
+        <img src="/assets/logo.png" alt="Логотип ОПиПАСР" width="440" height="440" />
       </a>
       <div class="landing-title">ОПиПАСР</div>
       <div class="landing-subtitle">Информационно-аналитическая платформа поддержки решений</div>
