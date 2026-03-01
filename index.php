@@ -7,18 +7,155 @@ $page_title = 'ОПиПАСР — Пожаротушение, АСР, БАС';
 $page_wrap_container = false;
 
 require_once __DIR__ . '/config/header.php';
+?>
 
-$index_html = @file_get_contents(__DIR__ . '/index.html');
-if ($index_html !== false && preg_match('~<main\\b[^>]*>(.*?)</main>~si', $index_html, $m)) {
-  echo $m[1];
-} else {
-  ?>
-  <div class="panel">
-    <div class="h1">ОПиПАСР</div>
-    <p class="p">Не удалось загрузить содержимое главной страницы.</p>
+<section class="hero">
+  <div class="container hero-inner">
+    <div class="hero-copy">
+      <p class="kicker">opipasr.ru</p>
+      <h1>Информационно-аналитическая платформа поддержки решений при пожарах и АСР</h1>
+      <p class="lead">
+        Публичный контур: систематизированные нормативные документы и методики.
+        Закрытый контур (после входа): телеметрия БАС, индикаторы обстановки, калькуляторы и поддержка принятия решений для РТП.
+      </p>
+
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="/normative/">Открыть нормативную базу</a>
+        <a class="btn btn-ghost" href="/login/">Перейти в кабинет</a>
+      </div>
+
+      <div class="hero-metrics" aria-label="Ключевые возможности">
+        <div class="metric">
+          <div class="metric-value">НТД</div>
+          <div class="metric-label">структурирование требований и ссылок</div>
+        </div>
+        <div class="metric">
+          <div class="metric-value">БАС</div>
+          <div class="metric-label">телеметрия, тепловизор, события</div>
+        </div>
+        <div class="metric">
+          <div class="metric-value">РТП</div>
+          <div class="metric-label">предупреждения и протокол решений</div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="hero-panel" aria-label="Превью кабинета">
+      <div class="panel-card">
+        <div class="panel-header">
+          <span class="panel-badge">Кабинет</span>
+          <span class="panel-title">Оперативная панель</span>
+        </div>
+
+        <div class="panel-grid">
+          <div class="tile">
+            <div class="tile-label">Состояние</div>
+            <div class="tile-value ok">OK</div>
+            <div class="tile-note">канал связи устойчив</div>
+          </div>
+          <div class="tile">
+            <div class="tile-label">Батарея</div>
+            <div class="tile-value">76%</div>
+            <div class="tile-note">оценка до возврата</div>
+          </div>
+          <div class="tile">
+            <div class="tile-label">Tmax</div>
+            <div class="tile-value">—</div>
+            <div class="tile-note">тепловизор (пример)</div>
+          </div>
+          <div class="tile">
+            <div class="tile-label">Газ</div>
+            <div class="tile-value">—</div>
+            <div class="tile-note">датчики (пример)</div>
+          </div>
+        </div>
+
+        <div class="panel-footer">
+          <span class="panel-footnote">Данные отображаются после аутентификации и привязки БАС.</span>
+          <a class="link" href="/about/">Архитектура и ограничения →</a>
+        </div>
+      </div>
+    </aside>
   </div>
-  <?php
-}
+</section>
 
+<section class="section">
+  <div class="container">
+    <h2>Разделы публичного контура</h2>
+    <p class="section-lead">
+      Контент организован так, чтобы быть пригодным для быстрого поиска требований, корректного цитирования и практической интерпретации при подготовке решений и расчётов.
+    </p>
+
+    <div class="cards">
+      <a class="card" href="/normative/">
+        <div class="card-title">Нормативные документы</div>
+        <div class="card-text">Иерархия НТД, аннотации, ключевые определения, связи между документами, отметки актуальности.</div>
+        <div class="card-meta">Перейти →</div>
+      </a>
+
+      <a class="card" href="/methods/">
+        <div class="card-title">Методики и модели</div>
+        <div class="card-text">Расчётные схемы, допущения, область применимости; базовые формулы для «полевых» инженерных оценок.</div>
+        <div class="card-meta">Перейти →</div>
+      </a>
+
+      <a class="card" href="/about/">
+        <div class="card-title">О&nbsp;системе</div>
+        <div class="card-text">Назначение модулей, принципы обработки телеметрии, интерпретация индикаторов и предупреждений.</div>
+        <div class="card-meta">Перейти →</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="section section-alt">
+  <div class="container">
+    <h2>Закрытый контур для РТП и операторов БАС</h2>
+    <p class="section-lead">
+      После входа доступны инструменты, ориентированные на оперативную обстановку: мониторинг, расчёты и протоколирование решений.
+    </p>
+
+    <div class="features">
+      <div class="feature">
+        <div class="feature-title">Телеметрия и события</div>
+        <ul class="feature-list">
+          <li>поток параметров полёта и полезной нагрузки;</li>
+          <li>журнал тревог и подтверждений;</li>
+          <li>выгрузка по миссии/инциденту.</li>
+        </ul>
+      </div>
+
+      <div class="feature">
+        <div class="feature-title">Калькуляторы</div>
+        <ul class="feature-list">
+          <li>потери напора и требуемый напор на насосе;</li>
+          <li>геометрия обзора БАС (полоса/площадь покрытия);</li>
+          <li>оценка ресурса БАС (окно возврата).</li>
+        </ul>
+      </div>
+
+      <div class="feature">
+        <div class="feature-title">Поддержка решений</div>
+        <ul class="feature-list">
+          <li>правила предупреждений (пороги + тренды);</li>
+          <li>оценка достоверности по качеству данных;</li>
+          <li>фиксация: принято/отклонено + комментарий РТП.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="cta-strip">
+      <div class="cta-text">
+        <div class="cta-title">Доступ к кабинету</div>
+        <div class="cta-sub">Для роли РТП может требоваться подтверждение (приглашение/согласование).</div>
+      </div>
+      <div class="cta-actions">
+        <a class="btn btn-ghost" href="/register/">Регистрация</a>
+        <a class="btn btn-primary" href="/login/">Вход</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<?php
 require_once __DIR__ . '/config/footer.php';
-
