@@ -1914,3 +1914,28 @@ h2{
 .toolbar-row .dirty-indicator{
   margin-left: auto;
 }
+
+.lk-camera-card{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lk-camera-status-row{
+  font-size: 14px;
+  color: var(--muted);
+}
+#lkCamStatus{
+  color: var(--text);
+}
+#lkCamVideo{
+  width: 100%;
+  max-height: 420px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: #000;
+}
+.lk-camera-actions{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

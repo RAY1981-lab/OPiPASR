@@ -82,7 +82,22 @@ require_once __DIR__ . '/../config/header.php';
       <li><strong>Админ:</strong> заявки/пользователи/права, аудит действий, мониторинг ingest, статусы БД/каналов.</li>
     </ul>
   </div>
+
+  <div class="feature feature-wide lk-camera-card">
+    <div class="feature-title">Камера</div>
+    <div class="lk-camera-status-row">Статус: <strong id="lkCamStatus">init</strong></div>
+    <video id="lkCamVideo" autoplay playsinline controls muted></video>
+    <div class="lk-camera-actions">
+      <button type="button" class="btn btn-primary" id="lkCamConnect">Подключить</button>
+      <button type="button" class="btn btn-ghost" id="lkCamDisconnect">Отключить</button>
+      <button type="button" class="btn btn-ghost" id="lkCamReconnect">Переподключить</button>
+    </div>
+    <div class="kv-hint" id="lkCamHint">Если кабинет открыт по HTTPS, нужен WSS прокси. Сейчас используйте LAN или настройте /janusws.</div>
+  </div>
 </div>
 
-<?php require_once __DIR__ . '/../config/footer.php'; ?>
+<script src="/js/webrtc/adapter.js"></script>
+<script src="/js/webrtc/janus.js"></script>
+<script src="/js/webrtc/lk-camera.js"></script>
 
+<?php require_once __DIR__ . '/../config/footer.php'; ?>
